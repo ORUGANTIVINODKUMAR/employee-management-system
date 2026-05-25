@@ -10,8 +10,6 @@ import {
   IdCard,
   Bell,
   Wallet,
-  Moon,
-  Sun,
 } from "lucide-react";
 
 import { useAuth } from "../context/AuthContext";
@@ -33,9 +31,6 @@ const Dashboard = () => {
   const [stats, setStats] = useState({});
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState([]);
-  const [darkMode, setDarkMode] = useState(
-    localStorage.getItem("theme") === "dark"
-  );
   const isAdmin = user?.role === "Admin";
   const isEmployee = user?.role === "Employee";
   const isManagerOrHR = ["Manager", "HR"].includes(user?.role);
@@ -59,10 +54,6 @@ const Dashboard = () => {
 
     fetchStats();
   }, []);
-  useEffect(() => {
-    document.body.classList.toggle("dark-mode", darkMode);
-    localStorage.setItem("theme", darkMode ? "dark" : "light");
-  }, [darkMode]);
 
   const menuButton = (key, icon, label) => (
     <button
@@ -159,7 +150,7 @@ const Dashboard = () => {
             Here&apos;s a snapshot of your profile and recent activity.
           </p>
           <div className="notification-wrapper">
-              
+
             <button
               className="notification-bell"
               onClick={() =>
