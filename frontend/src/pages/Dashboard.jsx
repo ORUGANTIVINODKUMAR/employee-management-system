@@ -10,6 +10,8 @@ import {
   IdCard,
   Bell,
   Wallet,
+  Moon,
+  Sun,
 } from "lucide-react";
 
 import { useAuth } from "../context/AuthContext";
@@ -17,6 +19,8 @@ import api from "../api/api";
 
 import AdminSubcategories from "./AdminSubcategories";
 import AdminUsers from "./AdminUsers";
+import AdminLeaveReports from "./AdminLeaveReports";
+import AdminReimbursementReports from "./AdminReimbursementReports";
 import LeaveRequests from "./LeaveRequests";
 import ApprovalRequests from "./ApprovalRequests";
 import Reimbursements from "./Reimbursements";
@@ -29,6 +33,9 @@ const Dashboard = () => {
   const [stats, setStats] = useState({});
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState([]);
+  const [darkMode, setDarkMode] = useState(
+    localStorage.getItem("theme") === "dark"
+  );
   const isAdmin = user?.role === "Admin";
   const isEmployee = user?.role === "Employee";
   const isManagerOrHR = ["Manager", "HR"].includes(user?.role);
@@ -52,6 +59,10 @@ const Dashboard = () => {
 
     fetchStats();
   }, []);
+  useEffect(() => {
+    document.body.classList.toggle("dark-mode", darkMode);
+    localStorage.setItem("theme", darkMode ? "dark" : "light");
+  }, [darkMode]);
 
   const menuButton = (key, icon, label) => (
     <button
@@ -82,6 +93,17 @@ const Dashboard = () => {
               <>
                 {menuButton("departments", <Building2 size={18} />, "Departments")}
                 {menuButton("users", <Users size={18} />, "User Management")}
+                {menuButton(
+                  "leaveReports",
+                  <CalendarCheck size={18} />,
+                  "Leave Reports"
+                )}
+
+                {menuButton(
+                  "reimbursementReports",
+                  <Receipt size={18} />,
+                  "Reimbursement Reports"
+                )}
               </>
             )}
 
@@ -137,7 +159,7 @@ const Dashboard = () => {
             Here&apos;s a snapshot of your profile and recent activity.
           </p>
           <div className="notification-wrapper">
-
+              
             <button
               className="notification-bell"
               onClick={() =>
@@ -343,7 +365,7 @@ const Dashboard = () => {
                     <p>awaiting review</p>
                   </div>
 
-                 
+
                 </div>
               </>
             )}
@@ -437,6 +459,17 @@ const Dashboard = () => {
         {activePage === "reimbursementApprovals" && isManagerOrHR && (
           <div className="modern-section-card">
             <ReimbursementApprovals />
+          </div>
+        )}
+        {activePage === "leaveReports" && isAdmin && (
+          <div className="modern-section-card">
+            <AdminLeaveReports />
+          </div>
+        )}
+
+        {activePage === "reimbursementReports" && isAdmin && (
+          <div className="modern-section-card">
+            <AdminReimbursementReports />
           </div>
         )}
       </main>

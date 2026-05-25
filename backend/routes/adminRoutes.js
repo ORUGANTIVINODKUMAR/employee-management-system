@@ -7,6 +7,8 @@ import {
   getUsers,
   deleteUser,
   deleteSubcategory,
+  getAllLeaveReports,
+  getAllReimbursementReports,
 } from "../controllers/adminController.js";
 
 import { protect } from "../middleware/authMiddleware.js";
@@ -52,5 +54,18 @@ router.delete(
   protect,
   authorizeRoles("Admin"),
   deleteSubcategory
+);
+router.get(
+  "/leave-reports",
+  protect,
+  authorizeRoles("Admin"),
+  getAllLeaveReports
+);
+
+router.get(
+  "/reimbursement-reports",
+  protect,
+  authorizeRoles("Admin"),
+  getAllReimbursementReports
 );
 export default router;

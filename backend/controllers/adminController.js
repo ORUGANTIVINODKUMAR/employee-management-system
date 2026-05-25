@@ -1,4 +1,6 @@
 import Subcategory from "../models/Subcategory.js";
+import LeaveRequest from "../models/LeaveRequest.js";
+import ReimbursementRequest from "../models/ReimbursementRequest.js";
 
 export const createSubcategory = async (req, res) => {
   try {
@@ -182,6 +184,44 @@ export const deleteSubcategory = async (req, res) => {
     res.status(200).json({
       success: true,
       message: "Department deleted successfully",
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+export const getAllLeaveReports = async (req, res) => {
+  try {
+    const leaveRequests = await LeaveRequest.find({})
+      .populate("employeeId", "name email employeeId designation")
+      .populate("subcategoryId", "name")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      leaveRequests,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export const getAllReimbursementReports = async (req, res) => {
+  try {
+    const reimbursements = await ReimbursementRequest.find({})
+      .populate("employeeId", "name email employeeId designation")
+      .populate("approvals.managerApprovedBy", "name")
+      .populate("approvals.hrApprovedBy", "name")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      reimbursements,
     });
   } catch (error) {
     res.status(500).json({
