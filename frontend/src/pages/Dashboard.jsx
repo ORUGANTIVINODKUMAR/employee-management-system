@@ -417,49 +417,82 @@ const Dashboard = () => {
           </>
         )}
 
-        {activePage === "departments" && isAdmin && (
-          <div className="modern-section-card">
+
+
+
+
+        {isAdmin && (
+          <div
+            className={`modern-section-card ${activePage === "departments" ? "page-visible" : "page-hidden"
+              }`}
+          >
             <AdminSubcategories />
           </div>
         )}
 
-        {activePage === "users" && isAdmin && (
-          <div className="modern-section-card">
+        {isAdmin && (
+          <div
+            className={`modern-section-card ${activePage === "users" ? "page-visible" : "page-hidden"
+              }`}
+          >
             <AdminUsers />
           </div>
         )}
 
-        {activePage === "leave" && isEmployee && (
-          <div className="modern-section-card">
+        {isEmployee && (
+          <div
+            className={`modern-section-card ${activePage === "leave" ? "page-visible" : "page-hidden"
+              }`}
+          >
             <LeaveRequests />
           </div>
         )}
 
-        {activePage === "reimbursements" && isEmployee && (
-          <div className="modern-section-card">
+        {isEmployee && (
+          <div
+            className={`modern-section-card ${activePage === "reimbursements" ? "page-visible" : "page-hidden"
+              }`}
+          >
             <Reimbursements />
           </div>
         )}
 
-        {activePage === "approvals" && isManagerOrHR && (
-          <div className="modern-section-card">
+        {isManagerOrHR && (
+          <div
+            className={`modern-section-card ${activePage === "approvals" ? "page-visible" : "page-hidden"
+              }`}
+          >
             <ApprovalRequests />
           </div>
         )}
 
-        {activePage === "reimbursementApprovals" && isManagerOrHR && (
-          <div className="modern-section-card">
+        {isManagerOrHR && (
+          <div
+            className={`modern-section-card ${activePage === "reimbursementApprovals"
+                ? "page-visible"
+                : "page-hidden"
+              }`}
+          >
             <ReimbursementApprovals />
           </div>
         )}
-        {activePage === "leaveReports" && isAdmin && (
-          <div className="modern-section-card">
+
+        {isAdmin && (
+          <div
+            className={`modern-section-card ${activePage === "leaveReports" ? "page-visible" : "page-hidden"
+              }`}
+          >
             <AdminLeaveReports />
           </div>
         )}
 
-        {activePage === "reimbursementReports" && isAdmin && (
-          <div className="modern-section-card">
+        {isAdmin && (
+          <div
+            className={`modern-section-card ${activePage === "reimbursementReports"
+                ? "page-visible"
+                : "page-hidden"
+              }`}
+          >
             <AdminReimbursementReports />
           </div>
         )}
