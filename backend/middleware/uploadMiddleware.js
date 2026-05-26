@@ -1,21 +1,30 @@
 import multer from "multer";
-import path from "path";
-import fs from "fs";
+import { CloudinaryStorage } from "multer-storage-cloudinary";
+import cloudinary from "../config/cloudinary.js";
 
-const uploadDir = "uploads";
+const storage = new CloudinaryStorage({
+  cloudinary,
+  params: async (req, file) => {
+    let folder = "employee-portal/uploads";
 
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir);
-}
+    if (req.originalUrl.includes("leave")) {
+      folder = "employee-portal/leave-proofs";
+    }
 
-const storage = multer.diskStorage({
-  destination(req, file, cb) {
-    cb(null, uploadDir);
-  },
+    if (req.originalUrl.includes("reimbursements")) {
+      folder = "employee-portal/reimbursement-receipts";
+    }
 
-  filename(req, file, cb) {
-    const uniqueName = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(null, uniqueName + path.extname(file.originalname));
+    if (req.originalUrl.includes("profile")) {
+      folder = "employee-portal/signatures";
+    }
+
+    return {
+      folder,
+      resource_type: "auto",
+      allowed_formats: ["pdf", "jpg", "jpeg", "png"],
+      public_id: `${Date.now()}-${Math.round(Math.random() * 1e9)}`,
+    };
   },
 });
 

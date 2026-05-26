@@ -50,7 +50,7 @@ export const createReimbursement = async (req, res) => {
       expenseFrom,
       expenseTo,
       businessPurpose,
-      receiptFile: `/uploads/${req.file.filename}`,
+      receiptFile: req.file.path,
       items,
       subtotal,
       lessCashAdvance,

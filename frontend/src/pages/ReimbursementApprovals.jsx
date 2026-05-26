@@ -115,17 +115,17 @@ const ReimbursementApprovals = () => {
 
   const printReimbursementForm = (item) => {
     const employeeSignature = item.employeeId?.signatureFile
-      ? `http://localhost:5000${item.employeeId.signatureFile}`
+      ? item.employeeId.signatureFile
       : "";
 
     const managerSignature =
       item.approvals?.managerApprovedBy?.signatureFile
-        ? `http://localhost:5000${item.approvals.managerApprovedBy.signatureFile}`
+        ? item.approvals.managerApprovedBy.signatureFile
         : "";
 
     const hrSignature =
       item.approvals?.hrApprovedBy?.signatureFile
-        ? `http://localhost:5000${item.approvals.hrApprovedBy.signatureFile}`
+        ? item.approvals.hrApprovedBy.signatureFile
         : "";
 
 
@@ -587,7 +587,7 @@ const ReimbursementApprovals = () => {
                 <td>
                   {item.receiptFile ? (
                     <a
-                      href={`http://localhost:5000${item.receiptFile}`}
+                      href={item.receiptFile}
                       target="_blank"
                       rel="noreferrer"
                       className="file-link"

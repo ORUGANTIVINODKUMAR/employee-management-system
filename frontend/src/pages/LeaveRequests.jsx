@@ -236,7 +236,7 @@ const LeaveRequests = () => {
                 <td>
                   {item.proofFile ? (
                     <a
-                      href={`http://localhost:5000${item.proofFile}`}
+                      href={item.proofFile}
                       target="_blank"
                       rel="noreferrer"
                       className="file-link"

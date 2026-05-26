@@ -68,8 +68,9 @@ export const createLeaveRequest = async (req, res) => {
       reason,
       workingDays,
       leaveExplanation: leaveExplanation || "",
-      proofFile: req.file ? `/uploads/${req.file.filename}` : "",
+      proofFile: req.file ? req.file.path : "",
     });
+
 
     const approvers = await User.find({
       role: { $in: ["Manager", "HR"] },

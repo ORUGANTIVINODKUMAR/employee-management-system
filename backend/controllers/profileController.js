@@ -12,7 +12,7 @@ export const uploadSignature = async (req, res) => {
     const user = await User.findByIdAndUpdate(
       req.user._id,
       {
-        signatureFile: `/uploads/${req.file.filename}`,
+        signatureFile: req.file.path,
       },
       {
         new: true,

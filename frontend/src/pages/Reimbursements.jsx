@@ -426,7 +426,7 @@ const Reimbursements = () => {
                 <td>
                   {item.receiptFile ? (
                     <a
-                      href={`http://localhost:5000${item.receiptFile}`}
+                      href={item.receiptFile}
                       target="_blank"
                       rel="noreferrer"
                       className="file-link"
