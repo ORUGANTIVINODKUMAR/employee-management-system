@@ -32,20 +32,47 @@ const defaultCategories = [
 ];
 
 const Reimbursements = () => {
+
   const [requests, setRequests] = useState([]);
   const [activeFilter, setActiveFilter] = useState("All");
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const REQUESTS_PER_PAGE = 10;
   const [showModal, setShowModal] =
     useState(false);
+  const [submitting, setSubmitting] =
+    useState(false);
 
+  const [showReasonModal, setShowReasonModal] =
+    useState(false);
+
+  const [selectedReason, setSelectedReason] =
+    useState("");
   const [categories, setCategories] =
     useState(defaultCategories);
   const todayDate = new Date().toISOString().split("T")[0];
-  const filteredRequests =
-    activeFilter === "All"
-      ? requests
-      : requests.filter((item) => item.status === activeFilter);
+  const filteredRequests = (requests || []).filter((item) => {
+    const matchesFilter =
+      activeFilter === "All"
+        ? true
+        : item.status === activeFilter;
 
-  const totalSubmitted = requests.length;
+    const search = searchTerm.toLowerCase();
+
+    const matchesSearch =
+      item.businessPurpose
+        ?.toLowerCase()
+        .includes(search) ||
+      item.status
+        ?.toLowerCase()
+        .includes(search);
+
+    return matchesFilter && matchesSearch;
+  });
+
+  const totalSubmitted = (requests || []).length;
 
   const approvedAmount = requests
     .filter((item) => item.status === "Approved")
@@ -58,13 +85,28 @@ const Reimbursements = () => {
   const rejectedCount = requests.filter(
     (item) => item.status === "Rejected"
   ).length;
+  const totalPages =
+    Math.ceil(
+      filteredRequests.length /
+      REQUESTS_PER_PAGE
+    ) || 1;
+
+  const startIndex =
+    (currentPage - 1) *
+    REQUESTS_PER_PAGE;
+
+  const paginatedRequests =
+    filteredRequests.slice(
+      startIndex,
+      startIndex + REQUESTS_PER_PAGE
+    );
   const [formData, setFormData] =
     useState({
       expenseFrom: "",
       expenseTo: "",
       businessPurpose: "",
       lessCashAdvance: 0,
-      receiptFile: null,
+      receiptFiles: [],
 
       items: [
         {
@@ -96,7 +138,11 @@ const Reimbursements = () => {
           "/reimbursements/my-requests"
         );
 
-      setRequests(data.reimbursements);
+      setRequests(
+        data.reimbursementRequests ||
+        data.reimbursements ||
+        []
+      );
     } catch (error) {
       console.log(
         error.response?.data
@@ -225,7 +271,7 @@ const Reimbursements = () => {
       expenseTo: "",
       businessPurpose: "",
       lessCashAdvance: 0,
-      receiptFile: null,
+      receiptFiles: [],
 
       items: [
         {
@@ -256,11 +302,19 @@ const Reimbursements = () => {
       alert("Expense To date cannot be before Expense From date.");
       return;
     }
-    if (!formData.receiptFile) {
-      alert("Receipt / Invoice upload is required.");
+    if (
+      !formData.receiptFiles ||
+      formData.receiptFiles.length === 0
+    ) {
+      alert(
+        "At least one receipt / invoice upload is required."
+      );
+
       return;
     }
+
     try {
+      setSubmitting(true);
       const payload =
         new FormData();
 
@@ -290,11 +344,18 @@ const Reimbursements = () => {
           formData.items
         )
       );
+      payload.append(
+        "subtotal",
+        subtotal
+      );
 
       payload.append(
-        "receiptFile",
-        formData.receiptFile
+        "totalReimbursement",
+        totalReimbursement
       );
+      formData.receiptFiles.forEach((file) => {
+        payload.append("receiptFiles", file);
+      });
 
       await api.post(
         "/reimbursements/request",
@@ -313,10 +374,13 @@ const Reimbursements = () => {
 
       fetchRequests();
 
+      setSubmitting(false);
+
       alert(
         "Reimbursement submitted successfully"
       );
     } catch (error) {
+      setSubmitting(false);
       alert(
         error.response?.data
           ?.message ||
@@ -379,12 +443,38 @@ const Reimbursements = () => {
         </div>
       </div>
 
+      <div
+        style={{
+          marginBottom: "18px",
+        }}
+      >
+        <input
+          type="text"
+          placeholder="Search by purpose or status..."
+          value={searchTerm}
+          onChange={(e) => {
+            setSearchTerm(e.target.value);
+            setCurrentPage(1);
+          }}
+          style={{
+            width: "100%",
+            padding: "14px",
+            borderRadius: "12px",
+            border: "1px solid #d1d5db",
+            fontSize: "14px",
+          }}
+        />
+      </div>
+
       <div className="leave-filter-tabs">
         {["All", "Pending", "Approved", "Rejected"].map((filter) => (
           <button
             key={filter}
             className={activeFilter === filter ? "active-filter" : ""}
-            onClick={() => setActiveFilter(filter)}
+            onClick={() => {
+              setActiveFilter(filter);
+              setCurrentPage(1);
+            }}
           >
             {filter === "All" ? "All Claims" : filter}
           </button>
@@ -400,11 +490,12 @@ const Reimbursements = () => {
               <th>Receipt</th>
               <th>Status</th>
               <th>Approval Flow</th>
+              <th>Reason</th>
             </tr>
           </thead>
 
           <tbody>
-            {filteredRequests.map((item) => (
+            {paginatedRequests.map((item) => (
               <tr key={item._id}>
                 <td>
                   <div className="user-cell">
@@ -424,15 +515,26 @@ const Reimbursements = () => {
                 <td>₹ {item.totalReimbursement}</td>
 
                 <td>
-                  {item.receiptFile ? (
-                    <a
-                      href={item.receiptFile}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="file-link"
+                  {item.receiptFiles?.length > 0 ? (
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "6px",
+                      }}
                     >
-                      View Receipt
-                    </a>
+                      {item.receiptFiles.map((file, index) => (
+                        <a
+                          key={index}
+                          href={file}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="file-link"
+                        >
+                          View Receipt {index + 1}
+                        </a>
+                      ))}
+                    </div>
                   ) : (
                     "N/A"
                   )}
@@ -479,6 +581,24 @@ const Reimbursements = () => {
                     </span>
                   </div>
                 </td>
+                <td>
+                  {item.rejectionReason ? (
+                    <button
+                      className="btn btn-secondary"
+                      onClick={() => {
+                        setSelectedReason(
+                          item.rejectionReason
+                        );
+
+                        setShowReasonModal(true);
+                      }}
+                    >
+                      View Reason
+                    </button>
+                  ) : (
+                    "-"
+                  )}
+                </td>
               </tr>
             ))}
 
@@ -492,6 +612,59 @@ const Reimbursements = () => {
           </tbody>
         </table>
       </div>
+
+      {filteredRequests.length >
+        REQUESTS_PER_PAGE && (
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              gap: "10px",
+              marginTop: "24px",
+              flexWrap: "wrap",
+            }}
+          >
+            <button
+              className="btn btn-primary"
+              disabled={currentPage === 1}
+              onClick={() =>
+                setCurrentPage((prev) => prev - 1)
+              }
+            >
+              Previous
+            </button>
+
+            {Array.from(
+              { length: totalPages },
+              (_, index) => (
+                <button
+                  key={index + 1}
+                  className={
+                    currentPage === index + 1
+                      ? "btn btn-primary"
+                      : "btn"
+                  }
+                  onClick={() =>
+                    setCurrentPage(index + 1)
+                  }
+                >
+                  {index + 1}
+                </button>
+              )
+            )}
+
+            <button
+              className="btn btn-primary"
+              disabled={currentPage === totalPages}
+              onClick={() =>
+                setCurrentPage((prev) => prev + 1)
+              }
+            >
+              Next
+            </button>
+          </div>
+        )}
 
       {showModal && (
         <div className="modal-overlay">
@@ -523,19 +696,30 @@ const Reimbursements = () => {
 
                 <input
                   type="file"
+                  multiple
                   accept=".pdf,.jpg,.jpeg,.png"
                   onChange={(e) =>
                     setFormData({
                       ...formData,
-                      receiptFile:
-                        e.target
-                          .files[0],
+                      receiptFiles: Array.from(
+                        e.target.files
+                      ),
                     })
                   }
                   required
                 />
               </div>
-
+              {formData.receiptFiles?.length > 0 && (
+                <p
+                  style={{
+                    marginTop: "8px",
+                    fontSize: "13px",
+                    color: "#64748b",
+                  }}
+                >
+                  {formData.receiptFiles.length} receipt(s) selected
+                </p>
+              )}
               <div className="grid-2">
                 <div className="input-group">
                   <label>
@@ -801,11 +985,51 @@ const Reimbursements = () => {
               <button
                 className="btn btn-primary"
                 type="submit"
+                disabled={submitting}
+                style={{
+                  opacity: submitting ? 0.7 : 1,
+                  cursor: submitting ? "not-allowed" : "pointer",
+                }}
               >
-                Submit
-                Reimbursement
+                {submitting
+                  ? "Submitting..."
+                  : "Submit Reimbursement"}
               </button>
             </form>
+          </div>
+        </div>
+      )}
+      {showReasonModal && (
+        <div className="modal-overlay">
+          <div
+            className="modal-card"
+            style={{
+              maxWidth: "500px",
+            }}
+          >
+            <div className="modal-header">
+              <h3>Rejection Reason</h3>
+
+              <button
+                onClick={() =>
+                  setShowReasonModal(false)
+                }
+              >
+                ✕
+              </button>
+            </div>
+
+            <div
+              style={{
+                padding: "20px",
+                lineHeight: "1.7",
+                wordBreak: "break-word",
+                maxHeight: "400px",
+                overflowY: "auto",
+              }}
+            >
+              {selectedReason}
+            </div>
           </div>
         </div>
       )}

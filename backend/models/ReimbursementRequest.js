@@ -45,9 +45,9 @@ const reimbursementRequestSchema = new mongoose.Schema(
       required: true,
     },
 
-    receiptFile: {
-      type: String,
-      required: true,
+    receiptFiles: {
+      type: [String],
+      default: [],
     },
 
     items: {
@@ -104,6 +104,30 @@ const reimbursementRequestSchema = new mongoose.Schema(
         ref: "User",
         default: null,
       },
+
+      managerRejectionReason: {
+        type: String,
+        default: "",
+        trim: true,
+      },
+
+      hrRejectionReason: {
+        type: String,
+        default: "",
+        trim: true,
+      },
+    },
+
+    financeStatus: {
+      type: String,
+      enum: ["Not Routed", "Pending Payment", "Paid"],
+      default: "Not Routed",
+    },
+
+    rejectionReason: {
+      type: String,
+      default: "",
+      trim: true,
     },
   },
   { timestamps: true }

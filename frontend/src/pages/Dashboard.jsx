@@ -7,24 +7,31 @@ import {
   Receipt,
   LogOut,
   BadgeCheck,
-  IdCard,
   Bell,
   Wallet,
+  Clock,
 } from "lucide-react";
 
+
+import logo from "../assets/logo.png";
 import { useAuth } from "../context/AuthContext";
 import api from "../api/api";
-
+import FinanceLeaves from "./FinanceLeaves";
+import FinanceReimbursements from "./FinanceReimbursements";
 import AdminSubcategories from "./AdminSubcategories";
 import AdminUsers from "./AdminUsers";
 import AdminLeaveReports from "./AdminLeaveReports";
 import AdminReimbursementReports from "./AdminReimbursementReports";
 import LeaveRequests from "./LeaveRequests";
 import ApprovalRequests from "./ApprovalRequests";
+import LeaveCalendar from "./LeaveCalendar";
 import Reimbursements from "./Reimbursements";
 import ReimbursementApprovals from "./ReimbursementApprovals";
 import SignatureUploader from "../components/SignatureUploader";
-
+import Notifications from "./Notifications";
+import Attendance from "./Attendance";
+import HolidayManagement from "./HolidayManagement";
+import AdminAttendanceReports from "./AdminAttendanceReports";
 const Dashboard = () => {
   const { user, logout } = useAuth();
   const [activePage, setActivePage] = useState("dashboard");
@@ -34,14 +41,61 @@ const Dashboard = () => {
   const isAdmin = user?.role === "Admin";
   const isEmployee = user?.role === "Employee";
   const isManagerOrHR = ["Manager", "HR"].includes(user?.role);
+  const isFinance = user?.role === "Finance";
+  const COLORS = ["#2563eb", "#16a34a", "#f59e0b", "#dc2626"];
 
+  const adminUserChartData = [
+    {
+      name: "Employees",
+      value: stats.totalEmployees || 0,
+    },
+    {
+      name: "Departments",
+      value: stats.departments || 0,
+    },
+  ];
+
+  const approvalChartData = [
+    {
+      name: "Pending Leaves",
+      value: stats.pendingLeaves || 0,
+    },
+    {
+      name: "Pending Claims",
+      value: stats.pendingReimbursements || 0,
+    },
+  ];
+
+  const financeChartData = [
+    {
+      name: "Approved Leaves",
+      value: stats.approvedLeaves || 0,
+    },
+    {
+      name: "Approved Claims",
+      value: stats.approvedReimbursements || 0,
+    },
+  ];
+
+  const employeeChartData = [
+    {
+      name: "Leaves",
+      value: stats.myLeaves || 0,
+    },
+    {
+      name: "Claims",
+      value: stats.myReimbursements || 0,
+    },
+  ];
   useEffect(() => {
     const fetchStats = async () => {
       try {
         const { data } = await api.get("/dashboard/stats");
         setStats(data.stats);
-        const notificationRes = await api.get("/notifications");
-        setNotifications(notificationRes.data.notifications || []);
+        if (user?.role !== "Admin") {
+          const notificationRes = await api.get("/notifications");
+          setNotifications(notificationRes.data.notifications || []);
+        }
 
         localStorage.setItem(
           "leaveBalance",
@@ -69,17 +123,30 @@ const Dashboard = () => {
     <div className="dashboard-layout portal-redesign">
       <aside className="sidebar modern-sidebar">
         <div>
-          <div className="brand-block">
-            <div className="brand-icon">U</div>
-            <div>
-              <h2>Upsilon</h2>
-              <span>WORKPLACE</span>
-            </div>
+          <div
+            className="brand-block"
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              padding: "20px 0",
+            }}
+          >
+            <img
+              src={logo}
+              alt="Upsilon"
+              style={{
+                width: "140px",
+                height: "auto",
+                objectFit: "contain",
+              }}
+            />
           </div>
 
           <div className="sidebar-menu">
-            {menuButton("dashboard", <LayoutDashboard size={18} />, "Dashboard")}
 
+            {menuButton("dashboard", <LayoutDashboard size={18} />, "Dashboard")}
+            {!isAdmin &&
+              menuButton("notifications", <Bell size={18} />, "Notifications")}
             {isAdmin && (
               <>
                 {menuButton("departments", <Building2 size={18} />, "Departments")}
@@ -103,16 +170,42 @@ const Dashboard = () => {
 
             {isEmployee &&
               menuButton("reimbursements", <Receipt size={18} />, "Reimbursements")}
-
+            {isEmployee &&
+              menuButton("attendance", <CalendarCheck size={18} />, "Attendance")}
             {isManagerOrHR &&
               menuButton("approvals", <CalendarCheck size={18} />, "Leave Approvals")}
-
+            {(isManagerOrHR || isFinance || isAdmin) &&
+              menuButton(
+                "attendanceReports",
+                <Clock size={18} />,
+                "Attendance Reports"
+              )}
             {isManagerOrHR &&
               menuButton(
                 "reimbursementApprovals",
                 <Receipt size={18} />,
                 "Reimbursement Approvals"
               )}
+            {(isManagerOrHR || isFinance || isAdmin) &&
+              menuButton(
+                "leaveCalendar",
+                <CalendarCheck size={18} />,
+                "Leave Calendar"
+              )}
+            {isFinance &&
+              menuButton("financeLeaves", <CalendarCheck size={18} />, "Finance Leaves")}
+
+            {isFinance &&
+              menuButton(
+                "financeReimbursements",
+                <Receipt size={18} />,
+                "Finance Reimbursements"
+              )}
+            {menuButton(
+              "holidays",
+              <CalendarCheck size={18} />,
+              "Holidays"
+            )}
           </div>
         </div>
 
@@ -136,7 +229,13 @@ const Dashboard = () => {
       <main className="dashboard-main modern-main">
         <div className="modern-page-header">
           <span className="eyebrow">
-            {isEmployee ? "PERSONAL" : isAdmin ? "ADMIN" : "APPROVALS"}
+            {isEmployee
+              ? "PERSONAL"
+              : isAdmin
+                ? "ADMIN"
+                : isFinance
+                  ? "FINANCE"
+                  : "APPROVALS"}
           </span>
 
           <h1>
@@ -358,62 +457,113 @@ const Dashboard = () => {
 
 
                 </div>
+                <div className="modern-section-card">
+                  <h3>My Activity Overview</h3>
+
+
+                </div>
               </>
             )}
 
             {isAdmin && (
-              <div className="modern-stats-grid">
-                <div className="mini-stat-card">
-                  <Users size={23} />
-                  <span>Total Employees</span>
-                  <h3>{stats.totalEmployees || 0}</h3>
-                  <p>active users</p>
+              <>
+                <div className="modern-stats-grid">
+                  <div className="mini-stat-card">
+                    <Users size={23} />
+                    <span>Total Employees</span>
+                    <h3>{stats.totalEmployees || 0}</h3>
+                    <p>active users</p>
+                  </div>
+
+                  <div className="mini-stat-card">
+                    <Building2 size={23} />
+                    <span>Departments</span>
+                    <h3>{stats.departments || 0}</h3>
+                    <p>company units</p>
+                  </div>
                 </div>
 
+                <div className="modern-section-card">
+                  <h3>Organization Overview</h3>
 
 
-                <div className="mini-stat-card">
-                  <Building2 size={23} />
-                  <span>Departments</span>
-                  <h3>{stats.departments || 0}</h3>
-                  <p>company units</p>
                 </div>
-              </div>
+              </>
             )}
 
             {isManagerOrHR && (
-              <div className="modern-stats-grid">
-                <div className="mini-stat-card">
-                  <Users size={23} />
-                  <span>Total Employees</span>
-                  <h3>{stats.totalEmployees || 0}</h3>
-                  <p>team members</p>
+              <>
+                <div className="modern-stats-grid">
+                  <div className="mini-stat-card">
+                    <Users size={23} />
+                    <span>Total Employees</span>
+                    <h3>{stats.totalEmployees || 0}</h3>
+                    <p>team members</p>
+                  </div>
+
+                  <div className="mini-stat-card">
+                    <CalendarCheck size={23} />
+                    <span>Leave Approvals</span>
+                    <h3>{stats.pendingLeaves || 0}</h3>
+                    <p>pending</p>
+                  </div>
+
+                  <div className="mini-stat-card">
+                    <Receipt size={23} />
+                    <span>Reimbursement Approvals</span>
+                    <h3>{stats.pendingReimbursements || 0}</h3>
+                    <p>pending</p>
+                  </div>
+
+                  <div className="mini-stat-card">
+                    <BadgeCheck size={23} />
+                    <span>Approval Role</span>
+                    <h3>{user?.role}</h3>
+                    <p>authorized</p>
+                  </div>
                 </div>
 
-                <div className="mini-stat-card">
-                  <CalendarCheck size={23} />
-                  <span>Leave Approvals</span>
-                  <h3>{stats.pendingLeaves || 0}</h3>
-                  <p>pending</p>
+                <div className="modern-section-card">
+                  <h3>Approval Workload</h3>
+
+
+                </div>
+              </>
+            )}
+            {isFinance && (
+              <>
+                <div className="modern-stats-grid">
+                  <div className="mini-stat-card">
+                    <Receipt size={23} />
+                    <span>Approved Reimbursements</span>
+                    <h3>{stats.approvedReimbursements || 0}</h3>
+                    <p>ready for payment</p>
+                  </div>
+
+                  <div className="mini-stat-card">
+                    <CalendarCheck size={23} />
+                    <span>Approved Leaves</span>
+                    <h3>{stats.approvedLeaves || 0}</h3>
+                    <p>employee records</p>
+                  </div>
+
+                  <div className="mini-stat-card">
+                    <BadgeCheck size={23} />
+                    <span>Finance Role</span>
+                    <h3>Finance</h3>
+                    <p>authorized</p>
+                  </div>
                 </div>
 
-                <div className="mini-stat-card">
-                  <Receipt size={23} />
-                  <span>Reimbursement Approvals</span>
-                  <h3>{stats.pendingReimbursements || 0}</h3>
-                  <p>pending</p>
-                </div>
+                <div className="modern-section-card">
+                  <h3>Finance Overview</h3>
 
-                <div className="mini-stat-card">
-                  <BadgeCheck size={23} />
-                  <span>Approval Role</span>
-                  <h3>{user?.role}</h3>
-                  <p>authorized</p>
+
                 </div>
-              </div>
+              </>
             )}
 
-            {!isAdmin && <SignatureUploader />}
+            {!isAdmin && !isFinance && <SignatureUploader />}
           </>
         )}
 
@@ -439,14 +589,14 @@ const Dashboard = () => {
           </div>
         )}
 
-        {isEmployee && (
-          <div
-            className={`modern-section-card ${activePage === "leave" ? "page-visible" : "page-hidden"
-              }`}
-          >
-            <LeaveRequests />
-          </div>
-        )}
+        <div
+          className={`modern-section-card ${activePage === "leave" && isEmployee
+            ? "page-visible"
+            : "page-hidden"
+            }`}
+        >
+          <LeaveRequests />
+        </div>
 
         {isEmployee && (
           <div
@@ -476,12 +626,18 @@ const Dashboard = () => {
             <ReimbursementApprovals />
           </div>
         )}
-
-        {isAdmin && (
-          <div
-            className={`modern-section-card ${activePage === "leaveReports" ? "page-visible" : "page-hidden"
-              }`}
-          >
+        {activePage === "attendance" && isEmployee && (
+          <div className="modern-section-card">
+            <Attendance />
+          </div>
+        )}
+        {activePage === "attendanceReports" && (isManagerOrHR || isFinance || isAdmin) && (
+          <div className="modern-section-card">
+            <AdminAttendanceReports />
+          </div>
+        )}
+        {activePage === "leaveReports" && isAdmin && (
+          <div className="modern-section-card">
             <AdminLeaveReports />
           </div>
         )}
@@ -496,9 +652,37 @@ const Dashboard = () => {
             <AdminReimbursementReports />
           </div>
         )}
+        {activePage === "financeLeaves" && isFinance && (
+          <div className="modern-section-card">
+            <FinanceLeaves />
+          </div>
+        )}
+
+        {activePage === "financeReimbursements" && isFinance && (
+          <div className="modern-section-card">
+            <FinanceReimbursements />
+          </div>
+        )}
+        {activePage === "leaveCalendar" && (
+          <div className="modern-section-card">
+            <LeaveCalendar />
+          </div>
+        )}
+        {activePage === "notifications" && !isAdmin && (
+          <div className="modern-section-card">
+            <Notifications />
+          </div>
+        )}
+        {activePage === "holidays" && (
+          <div className="modern-section-card">
+            <HolidayManagement />
+          </div>
+        )}
       </main>
     </div>
   );
 };
+
+
 
 export default Dashboard;

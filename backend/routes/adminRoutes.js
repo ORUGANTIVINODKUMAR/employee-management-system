@@ -6,6 +6,7 @@ import {
   createUser,
   getUsers,
   deleteUser,
+  updateUser,
   deleteSubcategory,
   getAllLeaveReports,
   getAllReimbursementReports,
@@ -48,7 +49,12 @@ router.delete(
   authorizeRoles("Admin"),
   deleteUser
 );
-
+router.put(
+  "/users/:id",
+  protect,
+  authorizeRoles("Admin"),
+  updateUser
+);
 router.delete(
   "/subcategories/:id",
   protect,

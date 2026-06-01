@@ -1,10 +1,12 @@
 import express from "express";
 
 import {
-  createReimbursement,
-  getMyReimbursements,
-  getPendingReimbursements,
-  approveReimbursement,
+  createReimbursementRequest,
+  getMyReimbursementRequests,
+  getPendingReimbursementRequests,
+  getFinanceReimbursements,
+  approveReimbursementRequest,
+  markReimbursementAsPaid,
 } from "../controllers/reimbursementController.js";
 
 import { protect } from "../middleware/authMiddleware.js";
@@ -15,14 +17,21 @@ const router = express.Router();
 router.post(
   "/request",
   protect,
-  upload.single("receiptFile"),
-  createReimbursement
+  upload.array("receiptFiles", 10),
+  createReimbursementRequest
 );
 
-router.get("/my-requests", protect, getMyReimbursements);
+router.get("/my-requests", protect, getMyReimbursementRequests);
 
-router.get("/pending", protect, getPendingReimbursements);
+router.get("/pending", protect, getPendingReimbursementRequests);
 
-router.put("/approve/:id", protect, approveReimbursement);
+router.get("/finance", protect, getFinanceReimbursements);
+
+router.put("/approve/:id", protect, approveReimbursementRequest);
+router.put(
+  "/mark-paid/:id",
+  protect,
+  markReimbursementAsPaid
+);
 
 export default router;

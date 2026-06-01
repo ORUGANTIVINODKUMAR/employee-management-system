@@ -35,9 +35,26 @@ export const getSubcategories = async (req, res) => {
   try {
     const subcategories = await Subcategory.find();
 
+    const users = await User.find({
+      role: "Employee",
+    }).select("name email employeeId designation subcategoryId");
+
+    const subcategoriesWithUsers = subcategories.map((department) => {
+      const departmentUsers = users.filter(
+        (user) =>
+          user.subcategoryId?.toString() === department._id.toString()
+      );
+
+      return {
+        ...department.toObject(),
+        users: departmentUsers,
+        userCount: departmentUsers.length,
+      };
+    });
+
     res.status(200).json({
       success: true,
-      subcategories,
+      subcategories: subcategoriesWithUsers,
     });
   } catch (error) {
     res.status(500).json({
@@ -157,7 +174,56 @@ export const deleteUser = async (req, res) => {
     });
   }
 };
+export const updateUser = async (req, res) => {
+  try {
+    const {
+      firstName,
+      lastName,
+      designation,
+      phone,
+      role,
+      subcategoryId,
+      isActive,
+    } = req.body;
 
+    const user = await User.findById(req.params.id);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    user.firstName = firstName;
+    user.lastName = lastName;
+    user.designation = designation;
+    user.phone = phone;
+    user.role = role;
+    user.isActive = isActive;
+
+    user.subcategoryId =
+      role === "Admin" ||
+      role === "Manager" ||
+      role === "HR" ||
+      role === "Finance"
+        ? null
+        : subcategoryId;
+
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: "User updated successfully",
+      user,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
 export const deleteSubcategory = async (req, res) => {
   try {
     const usersInDepartment = await User.countDocuments({

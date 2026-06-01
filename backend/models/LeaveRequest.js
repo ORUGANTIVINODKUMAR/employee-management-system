@@ -16,7 +16,7 @@ const leaveRequestSchema = new mongoose.Schema(
 
     leaveType: {
       type: String,
-      enum: ["Sick", "Vacation", "Personal"],
+      enum: ["Sick", "Vacation", "Personal", "Travel"],
       required: true,
     },
 
@@ -69,6 +69,24 @@ const leaveRequestSchema = new mongoose.Schema(
         enum: ["Pending", "Approved", "Rejected"],
         default: "Pending",
       },
+
+      managerRejectionReason: {
+        type: String,
+        default: "",
+        trim: true,
+      },
+
+      hrRejectionReason: {
+        type: String,
+        default: "",
+        trim: true,
+      },
+    },
+
+    rejectionReason: {
+      type: String,
+      default: "",
+      trim: true,
     },
   },
   { timestamps: true }

@@ -1635,4 +1635,43 @@ body {
   text-align: center;
   color: #94a3b8;
 }
+.page-hidden {
+  display: none;
+}
 
+.page-visible {
+  display: block;
+}
+.page-hidden {
+  display: none;
+}
+
+.page-visible {
+  display: block;
+}
+.brand-block {
+  text-align: center;
+  padding: 20px 10px;
+}
+
+.brand-logo {
+  width: 60px;
+  height: 60px;
+  object-fit: contain;
+  margin-bottom: 10px;
+}
+
+.brand-title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.brand-subtitle {
+  display: block;
+  margin-top: 2px;
+  font-size: 11px;
+  letter-spacing: 3px;
+  color: #94a3b8;
+}

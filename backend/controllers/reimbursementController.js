@@ -1,61 +1,43 @@
 import ReimbursementRequest from "../models/ReimbursementRequest.js";
-
 import User from "../models/User.js";
 import { createNotification } from "../services/notificationService.js";
-import { sendReimbursementRequestEmail } from "../services/emailService.js";
-export const createReimbursement = async (req, res) => {
+import {
+  sendDecisionEmail,
+  sendFinanceReimbursementEmail,
+} from "../services/emailService.js";
+
+export const createReimbursementRequest = async (req, res) => {
   try {
     const {
       expenseFrom,
       expenseTo,
       businessPurpose,
-      lessCashAdvance = 0,
-    } = req.body;
-
-    if (!req.file) {
-      return res.status(400).json({
-        success: false,
-        message: "Receipt / Invoice upload is required.",
-      });
-    }
-
-    let items = [];
-
-    try {
-      items = JSON.parse(req.body.items);
-    } catch {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid expense items format.",
-      });
-    }
-
-    if (!items || items.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: "At least one expense item is required.",
-      });
-    }
-
-    const subtotal = items.reduce(
-      (sum, item) => sum + Number(item.cost || 0),
-      0
-    );
-
-    const totalReimbursement =
-      subtotal - Number(lessCashAdvance || 0);
-
-    const reimbursement = await ReimbursementRequest.create({
-      employeeId: req.user._id,
-      expenseFrom,
-      expenseTo,
-      businessPurpose,
-      receiptFile: req.file.path,
       items,
       subtotal,
       lessCashAdvance,
       totalReimbursement,
-    });
+    } = req.body;
+
+    const parsedItems = typeof items === "string" ? JSON.parse(items) : items;
+
+    const uploadedReceiptFiles =
+      req.files?.map((file) => file.path) || [];
+
+    const reimbursementRequest =
+      await ReimbursementRequest.create({
+        employeeId: req.user._id,
+        expenseFrom,
+        expenseTo,
+        businessPurpose,
+        items: parsedItems,
+        subtotal,
+        lessCashAdvance:
+          lessCashAdvance || 0,
+        totalReimbursement,
+        receiptFiles:
+          uploadedReceiptFiles,
+      });
+
     const approvers = await User.find({
       role: { $in: ["Manager", "HR"] },
       isActive: true,
@@ -72,21 +54,9 @@ export const createReimbursement = async (req, res) => {
       )
     );
 
-    Promise.all(
-      approvers.map((approver) =>
-        sendReimbursementRequestEmail({
-          to: approver.email,
-          employeeName: req.user.name,
-          businessPurpose,
-          totalReimbursement,
-        })
-      )
-    ).catch((emailError) => {
-      console.log("Reimbursement email failed:", emailError.message);
-    });
     res.status(201).json({
       success: true,
-      reimbursement,
+      reimbursementRequest,
     });
   } catch (error) {
     res.status(500).json({
@@ -96,15 +66,15 @@ export const createReimbursement = async (req, res) => {
   }
 };
 
-export const getMyReimbursements = async (req, res) => {
+export const getMyReimbursementRequests = async (req, res) => {
   try {
-    const reimbursements = await ReimbursementRequest.find({
+    const reimbursementRequests = await ReimbursementRequest.find({
       employeeId: req.user._id,
     }).sort({ createdAt: -1 });
 
     res.status(200).json({
       success: true,
-      reimbursements,
+      reimbursementRequests,
     });
   } catch (error) {
     res.status(500).json({
@@ -114,7 +84,7 @@ export const getMyReimbursements = async (req, res) => {
   }
 };
 
-export const getPendingReimbursements = async (req, res) => {
+export const getPendingReimbursementRequests = async (req, res) => {
   try {
     if (!["Manager", "HR"].includes(req.user.role)) {
       return res.status(403).json({
@@ -123,15 +93,13 @@ export const getPendingReimbursements = async (req, res) => {
       });
     }
 
-    const reimbursements = await ReimbursementRequest.find({})
-      .populate("employeeId", "name email employeeId designation signatureFile")
-      .populate("approvals.managerApprovedBy", "name signatureFile")
-      .populate("approvals.hrApprovedBy", "name signatureFile")
+    const reimbursementRequests = await ReimbursementRequest.find({})
+      .populate("employeeId", "name email employeeId designation")
       .sort({ createdAt: -1 });
 
     res.status(200).json({
       success: true,
-      reimbursements,
+      reimbursementRequests,
     });
   } catch (error) {
     res.status(500).json({
@@ -141,14 +109,49 @@ export const getPendingReimbursements = async (req, res) => {
   }
 };
 
-export const approveReimbursement = async (req, res) => {
+export const getFinanceReimbursements = async (req, res) => {
   try {
-    const { decision } = req.body;
+    if (req.user.role !== "Finance") {
+      return res.status(403).json({
+        success: false,
+        message: "Only Finance can view approved reimbursements",
+      });
+    }
+
+    const reimbursementRequests = await ReimbursementRequest.find({
+      status: "Approved",
+    })
+      .populate("employeeId", "name email employeeId designation")
+      .sort({ updatedAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      reimbursementRequests,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export const approveReimbursementRequest = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { decision, rejectionReason = "" } = req.body;
 
     if (!["Approved", "Rejected"].includes(decision)) {
       return res.status(400).json({
         success: false,
         message: "Invalid decision",
+      });
+    }
+
+    if (decision === "Rejected" && !rejectionReason.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "Rejection reason is required.",
       });
     }
 
@@ -159,60 +162,169 @@ export const approveReimbursement = async (req, res) => {
       });
     }
 
-    const reimbursement = await ReimbursementRequest.findById(req.params.id);
+    const reimbursementRequest = await ReimbursementRequest.findById(id).populate(
+      "employeeId",
+      "name email"
+    );
 
-    if (!reimbursement) {
+    if (!reimbursementRequest) {
       return res.status(404).json({
         success: false,
-        message: "Reimbursement not found",
+        message: "Reimbursement request not found",
       });
     }
 
     if (req.user.role === "Manager") {
-      reimbursement.approvals.managerStatus = decision;
-      reimbursement.approvals.managerApprovedBy = req.user._id;
+      reimbursementRequest.approvals.managerStatus = decision;
+      reimbursementRequest.approvals.managerApprovedBy =
+        decision === "Approved" ? req.user._id : null;
+      reimbursementRequest.approvals.managerRejectionReason =
+        decision === "Rejected" ? rejectionReason.trim() : "";
     }
 
     if (req.user.role === "HR") {
-      reimbursement.approvals.hrStatus = decision;
-      reimbursement.approvals.hrApprovedBy = req.user._id;
+      reimbursementRequest.approvals.hrStatus = decision;
+      reimbursementRequest.approvals.hrApprovedBy =
+        decision === "Approved" ? req.user._id : null;
+      reimbursementRequest.approvals.hrRejectionReason =
+        decision === "Rejected" ? rejectionReason.trim() : "";
     }
 
     if (
-      reimbursement.approvals.managerStatus === "Rejected" ||
-      reimbursement.approvals.hrStatus === "Rejected"
+      reimbursementRequest.approvals.managerStatus === "Rejected" ||
+      reimbursementRequest.approvals.hrStatus === "Rejected"
     ) {
-      reimbursement.status = "Rejected";
+      reimbursementRequest.status = "Rejected";
+      reimbursementRequest.financeStatus = "Not Routed";
+      reimbursementRequest.rejectionReason =
+        reimbursementRequest.approvals.managerRejectionReason ||
+        reimbursementRequest.approvals.hrRejectionReason ||
+        rejectionReason.trim();
     } else if (
-      reimbursement.approvals.managerStatus === "Approved" &&
-      reimbursement.approvals.hrStatus === "Approved"
+      reimbursementRequest.approvals.managerStatus === "Approved" &&
+      reimbursementRequest.approvals.hrStatus === "Approved"
     ) {
-      reimbursement.status = "Approved";
+      reimbursementRequest.status = "Approved";
+      reimbursementRequest.financeStatus = "Pending Payment";
+      reimbursementRequest.rejectionReason = "";
     } else {
-      reimbursement.status = "Pending";
+      reimbursementRequest.status = "Pending";
     }
 
-    await reimbursement.save();
-    if (reimbursement.status === "Approved") {
+    await reimbursementRequest.save();
+
+    if (reimbursementRequest.status === "Approved") {
       await createNotification({
-        recipientId: reimbursement.employeeId,
+        recipientId: reimbursementRequest.employeeId._id,
         title: "Reimbursement Approved",
-        message: "Your reimbursement request has been approved by Manager and HR.",
+        message:
+          "Your reimbursement request has been approved by Manager and HR.",
         link: "/dashboard",
       });
+
+      const financeUsers = await User.find({
+        role: "Finance",
+        isActive: true,
+      });
+
+      await Promise.all(
+        financeUsers.map((finance) =>
+          createNotification({
+            recipientId: finance._id,
+            title: "Reimbursement Ready for Payment",
+            message: `${reimbursementRequest.employeeId.name}'s reimbursement request is ready for payment processing.`,
+            link: "/dashboard",
+          })
+        )
+      );
+
+      Promise.all(
+        financeUsers.map((finance) =>
+          sendFinanceReimbursementEmail({
+            to: finance.email,
+            employeeName: reimbursementRequest.employeeId.name,
+            totalReimbursement:
+              reimbursementRequest.totalReimbursement,
+            businessPurpose: reimbursementRequest.businessPurpose,
+            expenseFrom: reimbursementRequest.expenseFrom,
+            expenseTo: reimbursementRequest.expenseTo,
+            status: reimbursementRequest.status,
+          })
+        )
+      ).catch((emailError) =>
+        console.log("Finance reimbursement email failed:", emailError.message)
+      );
     }
 
-    if (reimbursement.status === "Rejected") {
+    if (reimbursementRequest.status === "Rejected") {
       await createNotification({
-        recipientId: reimbursement.employeeId,
+        recipientId: reimbursementRequest.employeeId._id,
         title: "Reimbursement Rejected",
-        message: "Your reimbursement request has been rejected.",
+        message: `Your reimbursement request has been rejected. Reason: ${reimbursementRequest.rejectionReason}`,
         link: "/dashboard",
       });
+
+      sendDecisionEmail({
+        to: reimbursementRequest.employeeId.email,
+        subject: "Reimbursement Request Rejected",
+        title: "Reimbursement Request Rejected",
+        employeeName: reimbursementRequest.employeeId.name,
+        requestType: "Reimbursement",
+        status: "Rejected",
+        rejectionReason: reimbursementRequest.rejectionReason,
+      }).catch((emailError) =>
+        console.log("Reimbursement rejection email failed:", emailError.message)
+      );
     }
+
     res.status(200).json({
       success: true,
-      reimbursement,
+      reimbursementRequest,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+export const markReimbursementAsPaid = async (req, res) => {
+  try {
+    if (req.user.role !== "Finance") {
+      return res.status(403).json({
+        success: false,
+        message: "Only Finance can update payment status",
+      });
+    }
+
+    const reimbursementRequest =
+      await ReimbursementRequest.findById(
+        req.params.id
+      ).populate("employeeId", "name email");
+
+    if (!reimbursementRequest) {
+      return res.status(404).json({
+        success: false,
+        message: "Reimbursement request not found",
+      });
+    }
+
+    reimbursementRequest.financeStatus = "Paid";
+
+    await reimbursementRequest.save();
+
+    await createNotification({
+      recipientId:
+        reimbursementRequest.employeeId._id,
+      title: "Reimbursement Paid",
+      message:
+        "Your reimbursement payment has been processed successfully.",
+      link: "/dashboard",
+    });
+
+    res.status(200).json({
+      success: true,
+      reimbursementRequest,
     });
   } catch (error) {
     res.status(500).json({

@@ -4,7 +4,6 @@ export const getMyNotifications = async (req, res) => {
   try {
     const notifications = await Notification.find({
       recipientId: req.user._id,
-      isRead: false,
     }).sort({ createdAt: -1 });
     res.status(200).json({
       success: true,

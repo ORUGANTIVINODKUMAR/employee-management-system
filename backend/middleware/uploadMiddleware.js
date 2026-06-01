@@ -19,11 +19,18 @@ const storage = new CloudinaryStorage({
       folder = "employee-portal/signatures";
     }
 
+    const isPdf =
+      file.mimetype === "application/pdf";
+
+    const cleanFileName = file.originalname
+      .replace(/\.[^/.]+$/, "")
+      .replace(/\s+/g, "-");
+
     return {
       folder,
       resource_type: "auto",
       allowed_formats: ["pdf", "jpg", "jpeg", "png"],
-      public_id: `${Date.now()}-${Math.round(Math.random() * 1e9)}`,
+      public_id: `${Date.now()}-${cleanFileName}`,
     };
   },
 });
@@ -47,7 +54,7 @@ const upload = multer({
   storage,
   fileFilter,
   limits: {
-    fileSize: 5 * 1024 * 1024,
+    fileSize: 10 * 1024 * 1024,
   },
 });
 

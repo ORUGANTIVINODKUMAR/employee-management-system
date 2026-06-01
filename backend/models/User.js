@@ -12,29 +12,24 @@ const userSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
-
     lastName: {
       type: String,
       trim: true,
     },
-
     employeeId: {
       type: String,
       unique: true,
       sparse: true,
       trim: true,
     },
-
     designation: {
       type: String,
       trim: true,
     },
-
     phone: {
       type: String,
       trim: true,
     },
-
     dateOfJoining: {
       type: Date,
     },
@@ -51,7 +46,7 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ["Admin", "HR", "Manager", "Employee"],
+      enum: ["Admin", "HR", "Manager", "Employee", "Finance"],
       default: "Employee",
     },
     subcategoryId: {

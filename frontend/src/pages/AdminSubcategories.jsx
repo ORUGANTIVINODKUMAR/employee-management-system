@@ -6,7 +6,7 @@ const AdminSubcategories = () => {
   const [name, setName] = useState("");
   const [subcategories, setSubcategories] = useState([]);
   const [showModal, setShowModal] = useState(false);
-
+  const [selectedDepartment, setSelectedDepartment] = useState(null);
   const fetchSubcategories = async () => {
     const { data } = await api.get("/admin/subcategories");
     setSubcategories(data.subcategories);
@@ -35,7 +35,10 @@ const AdminSubcategories = () => {
       await api.delete(`/admin/subcategories/${id}`);
       fetchSubcategories();
     } catch (error) {
-      alert(error.response?.data?.message || "Delete failed");
+      alert(
+        error.response?.data?.message ||
+        "Users are associated with this department. You cannot delete it."
+      );
     }
   };
 
@@ -89,6 +92,7 @@ const AdminSubcategories = () => {
           <thead>
             <tr>
               <th>Department</th>
+              <th>Employees</th>
               <th>Created</th>
               <th>Status</th>
               <th>Actions</th>
@@ -107,7 +111,22 @@ const AdminSubcategories = () => {
                     <strong>{item.name}</strong>
                   </div>
                 </td>
+                <td>
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    <span className="badge badge-success">
+                      {item.userCount || item.users?.length || 0} Employees
+                    </span>
 
+                    {item.users?.length > 0 && (
+                      <button
+                        className="btn btn-secondary"
+                        onClick={() => setSelectedDepartment(item)}
+                      >
+                        View
+                      </button>
+                    )}
+                  </div>
+                </td>
                 <td>{new Date(item.createdAt).toLocaleDateString()}</td>
 
                 <td>
@@ -128,7 +147,7 @@ const AdminSubcategories = () => {
 
             {subcategories.length === 0 && (
               <tr>
-                <td colSpan="4" style={{ textAlign: "center", padding: "24px" }}>
+                <td colSpan="5" style={{ textAlign: "center", padding: "24px" }}>
                   No departments found.
                 </td>
               </tr>
@@ -136,7 +155,53 @@ const AdminSubcategories = () => {
           </tbody>
         </table>
       </div>
+      {selectedDepartment && (
+        <div className="modal-overlay">
+          <div className="modal-card" style={{ maxWidth: "650px", width: "90%" }}>
+            <div className="modal-header">
+              <h3>{selectedDepartment.name} Employees</h3>
 
+              <button onClick={() => setSelectedDepartment(null)}>
+                ✕
+              </button>
+            </div>
+
+            <div style={{ padding: "20px" }}>
+              <div className="reimbursement-summary-card" style={{ marginBottom: "16px" }}>
+                <span>Total Employees</span>
+                <h3>{selectedDepartment.users?.length || 0}</h3>
+                <p>assigned to this department</p>
+              </div>
+
+              <div className="table-wrapper modern-table-wrapper">
+                <table className="custom-table">
+                  <thead>
+                    <tr>
+                      <th>Employee</th>
+                      <th>Employee ID</th>
+                      <th>Email</th>
+                      <th>Designation</th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {selectedDepartment.users?.map((user) => (
+                      <tr key={user._id}>
+                        <td>
+                          <strong>{user.name}</strong>
+                        </td>
+                        <td>{user.employeeId || "N/A"}</td>
+                        <td>{user.email}</td>
+                        <td>{user.designation || "N/A"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       {showModal && (
         <div className="modal-overlay">
           <div className="modal-card modern-department-modal">
