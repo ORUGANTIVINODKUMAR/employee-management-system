@@ -4,8 +4,8 @@ import { createNotification } from "../services/notificationService.js";
 import {
   sendDecisionEmail,
   sendFinanceReimbursementEmail,
+  sendReimbursementRequestEmail,
 } from "../services/emailService.js";
-
 export const createReimbursementRequest = async (req, res) => {
   try {
     const {
@@ -53,7 +53,23 @@ export const createReimbursementRequest = async (req, res) => {
         })
       )
     );
-
+    Promise.all(
+      approvers.map((approver) =>
+        sendReimbursementRequestEmail({
+          to: approver.email,
+          employeeName: req.user.name,
+          businessPurpose,
+          totalReimbursement,
+          expenseFrom,
+          expenseTo,
+        })
+      )
+    ).catch((emailError) =>
+      console.log(
+        "Reimbursement request email failed:",
+        emailError.message
+      )
+    );
     res.status(201).json({
       success: true,
       reimbursementRequest,
