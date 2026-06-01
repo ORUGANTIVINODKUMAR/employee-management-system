@@ -589,14 +589,14 @@ const Dashboard = () => {
           </div>
         )}
 
-        <div
-          className={`modern-section-card ${activePage === "leave" && isEmployee
-            ? "page-visible"
-            : "page-hidden"
-            }`}
-        >
-          <LeaveRequests />
-        </div>
+        {isEmployee && (
+          <div
+            className={`modern-section-card ${activePage === "leave" ? "page-visible" : "page-hidden"
+              }`}
+          >
+            <LeaveRequests />
+          </div>
+        )}
 
         {isEmployee && (
           <div
@@ -626,18 +626,12 @@ const Dashboard = () => {
             <ReimbursementApprovals />
           </div>
         )}
-        {activePage === "attendance" && isEmployee && (
-          <div className="modern-section-card">
-            <Attendance />
-          </div>
-        )}
-        {activePage === "attendanceReports" && (isManagerOrHR || isFinance || isAdmin) && (
-          <div className="modern-section-card">
-            <AdminAttendanceReports />
-          </div>
-        )}
-        {activePage === "leaveReports" && isAdmin && (
-          <div className="modern-section-card">
+
+        {isAdmin && (
+          <div
+            className={`modern-section-card ${activePage === "leaveReports" ? "page-visible" : "page-hidden"
+              }`}
+          >
             <AdminLeaveReports />
           </div>
         )}
