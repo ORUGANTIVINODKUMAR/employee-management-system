@@ -166,3 +166,45 @@ export const sendFinanceReimbursementEmail = async ({
     html,
   });
 };
+export const sendReimbursementRequestEmail = async ({
+  to,
+  employeeName,
+  businessPurpose,
+  totalReimbursement,
+  expenseFrom,
+  expenseTo,
+}) => {
+  const html = `
+    <h2>New Reimbursement Request</h2>
+    <p>A new reimbursement request has been submitted.</p>
+
+    <table border="1" cellpadding="8" cellspacing="0">
+      <tr>
+        <td><strong>Employee Name</strong></td>
+        <td>${employeeName}</td>
+      </tr>
+      <tr>
+        <td><strong>Business Purpose</strong></td>
+        <td>${businessPurpose}</td>
+      </tr>
+      <tr>
+        <td><strong>Expense From</strong></td>
+        <td>${new Date(expenseFrom).toDateString()}</td>
+      </tr>
+      <tr>
+        <td><strong>Expense To</strong></td>
+        <td>${new Date(expenseTo).toDateString()}</td>
+      </tr>
+      <tr>
+        <td><strong>Total Reimbursement</strong></td>
+        <td>${totalReimbursement}</td>
+      </tr>
+    </table>
+  `;
+
+  await transporter.sendMail({
+    to,
+    subject: "New Reimbursement Request Submitted",
+    html,
+  });
+};
