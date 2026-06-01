@@ -92,15 +92,36 @@ const Attendance = () => {
         </div>
       </div>
 
-      <div className="modern-stats-grid">
-        <div className="mini-stat-card">
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+          gap: "20px",
+          marginBottom: "20px",
+        }}
+      >
+        <div
+          style={{
+            background: "#fff",
+            padding: "20px",
+            borderRadius: "12px",
+            boxShadow: "0 2px 10px rgba(0,0,0,0.08)",
+          }}
+        >
           <Clock size={23} />
           <span>Today Status</span>
           <h3>{todayAttendance?.status || "Not Checked In"}</h3>
           <p>{formatDate(new Date())}</p>
         </div>
 
-        <div className="mini-stat-card">
+        <div
+          style={{
+            background: "#fff",
+            padding: "20px",
+            borderRadius: "12px",
+            boxShadow: "0 2px 10px rgba(0,0,0,0.08)",
+          }}
+        >
           <LogIn size={23} />
           <span>Check In</span>
           <h3>{formatTime(todayAttendance?.checkInTime)}</h3>
@@ -178,8 +199,8 @@ const Attendance = () => {
                       record.status === "Present"
                         ? "badge badge-success"
                         : record.status === "Late"
-                        ? "badge badge-pending"
-                        : "badge badge-danger"
+                          ? "badge badge-pending"
+                          : "badge badge-danger"
                     }
                   >
                     {record.status}
