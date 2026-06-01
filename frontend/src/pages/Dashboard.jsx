@@ -194,13 +194,14 @@ const Dashboard = () => {
               )}
             {isFinance &&
               menuButton("financeLeaves", <CalendarCheck size={18} />, "Finance Leaves")}
-
+            
             {isFinance &&
               menuButton(
                 "financeReimbursements",
                 <Receipt size={18} />,
                 "Finance Reimbursements"
               )}
+
             {menuButton(
               "holidays",
               <CalendarCheck size={18} />,
@@ -619,8 +620,8 @@ const Dashboard = () => {
         {isManagerOrHR && (
           <div
             className={`modern-section-card ${activePage === "reimbursementApprovals"
-                ? "page-visible"
-                : "page-hidden"
+              ? "page-visible"
+              : "page-hidden"
               }`}
           >
             <ReimbursementApprovals />
@@ -639,13 +640,21 @@ const Dashboard = () => {
         {isAdmin && (
           <div
             className={`modern-section-card ${activePage === "reimbursementReports"
-                ? "page-visible"
-                : "page-hidden"
+              ? "page-visible"
+              : "page-hidden"
               }`}
           >
             <AdminReimbursementReports />
           </div>
         )}
+        {isEmployee && activePage === "attendance" && (
+              <Attendance />
+            )}
+
+            {(isAdmin || isManagerOrHR || isFinance) &&
+              activePage === "attendanceReports" && (
+                <AdminAttendanceReports />
+              )}
         {activePage === "financeLeaves" && isFinance && (
           <div className="modern-section-card">
             <FinanceLeaves />
@@ -676,7 +685,5 @@ const Dashboard = () => {
     </div>
   );
 };
-
-
 
 export default Dashboard;
