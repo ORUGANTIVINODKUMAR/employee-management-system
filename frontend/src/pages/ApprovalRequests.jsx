@@ -52,13 +52,13 @@ const ApprovalRequests = () => {
 
       setRequests(
         data.leaveRequests ||
-          data.requests ||
-          []
+        data.requests ||
+        []
       );
     } catch (error) {
       alert(
         error.response?.data?.message ||
-          "Unable to fetch approvals"
+        "Unable to fetch approvals"
       );
 
       console.log(
@@ -69,6 +69,12 @@ const ApprovalRequests = () => {
 
   useEffect(() => {
     fetchRequests();
+
+    const interval = setInterval(() => {
+      fetchRequests();
+    }, 2000); // every 5 seconds
+
+    return () => clearInterval(interval);
   }, []);
 
   const filteredRequests =
@@ -77,7 +83,7 @@ const ApprovalRequests = () => {
         activeFilter === "All"
           ? true
           : item.status ===
-            activeFilter;
+          activeFilter;
 
       const search =
         searchTerm.toLowerCase();
@@ -102,7 +108,7 @@ const ApprovalRequests = () => {
   const totalPages =
     Math.ceil(
       filteredRequests.length /
-        REQUESTS_PER_PAGE
+      REQUESTS_PER_PAGE
     ) || 1;
 
   const startIndex =
@@ -113,7 +119,7 @@ const ApprovalRequests = () => {
     filteredRequests.slice(
       startIndex,
       startIndex +
-        REQUESTS_PER_PAGE
+      REQUESTS_PER_PAGE
     );
 
   const pendingCount =
@@ -142,7 +148,7 @@ const ApprovalRequests = () => {
 
     setModalContent(
       content ||
-        "No reason provided."
+      "No reason provided."
     );
 
     setShowReasonModal(true);
@@ -198,7 +204,7 @@ const ApprovalRequests = () => {
       alert(
         error.response?.data
           ?.message ||
-          "Approval failed"
+        "Approval failed"
       );
 
       console.log(
@@ -392,7 +398,7 @@ const ApprovalRequests = () => {
             key={filter}
             className={
               activeFilter ===
-              filter
+                filter
                 ? "active-filter"
                 : ""
             }
@@ -500,12 +506,12 @@ const ApprovalRequests = () => {
                     <span
                       className={
                         item.status ===
-                        "Approved"
+                          "Approved"
                           ? "badge badge-success"
                           : item.status ===
                             "Rejected"
-                          ? "badge badge-danger"
-                          : "badge badge-pending"
+                            ? "badge badge-danger"
+                            : "badge badge-pending"
                       }
                     >
                       {item.status}
@@ -568,14 +574,14 @@ const ApprovalRequests = () => {
                           item
                             .approvals
                             ?.managerStatus ===
-                          "Approved"
+                            "Approved"
                             ? "approval-approved"
                             : item
-                                .approvals
-                                ?.managerStatus ===
+                              .approvals
+                              ?.managerStatus ===
                               "Rejected"
-                            ? "approval-rejected"
-                            : "approval-pending"
+                              ? "approval-rejected"
+                              : "approval-pending"
                         }
                       >
                         Manager:{" "}
@@ -590,14 +596,14 @@ const ApprovalRequests = () => {
                           item
                             .approvals
                             ?.hrStatus ===
-                          "Approved"
+                            "Approved"
                             ? "approval-approved"
                             : item
-                                .approvals
-                                ?.hrStatus ===
+                              .approvals
+                              ?.hrStatus ===
                               "Rejected"
-                            ? "approval-rejected"
-                            : "approval-pending"
+                              ? "approval-rejected"
+                              : "approval-pending"
                         }
                       >
                         HR:{" "}
@@ -633,93 +639,93 @@ const ApprovalRequests = () => {
 
             {filteredRequests.length ===
               0 && (
-              <tr>
-                <td
-                  colSpan="8"
-                  style={{
-                    textAlign:
-                      "center",
-                    padding:
-                      "24px",
-                  }}
-                >
-                  No leave approval requests found.
-                </td>
-              </tr>
-            )}
+                <tr>
+                  <td
+                    colSpan="8"
+                    style={{
+                      textAlign:
+                        "center",
+                      padding:
+                        "24px",
+                    }}
+                  >
+                    No leave approval requests found.
+                  </td>
+                </tr>
+              )}
           </tbody>
         </table>
       </div>
 
       {filteredRequests.length >
         REQUESTS_PER_PAGE && (
-        <div
-          style={{
-            display: "flex",
-            justifyContent:
-              "center",
-            alignItems: "center",
-            gap: "10px",
-            marginTop: "24px",
-            flexWrap: "wrap",
-          }}
-        >
-          <button
-            className="btn btn-primary"
-            disabled={
-              currentPage === 1
-            }
-            onClick={() =>
-              setCurrentPage(
-                (prev) =>
-                  prev - 1
-              )
-            }
+          <div
+            style={{
+              display: "flex",
+              justifyContent:
+                "center",
+              alignItems: "center",
+              gap: "10px",
+              marginTop: "24px",
+              flexWrap: "wrap",
+            }}
           >
-            Previous
-          </button>
+            <button
+              className="btn btn-primary"
+              disabled={
+                currentPage === 1
+              }
+              onClick={() =>
+                setCurrentPage(
+                  (prev) =>
+                    prev - 1
+                )
+              }
+            >
+              Previous
+            </button>
 
-          {Array.from(
-            {
-              length: totalPages,
-            },
-            (_, index) => (
-              <button
-                key={index + 1}
-                className={
-                  currentPage ===
-                  index + 1
-                    ? "btn btn-primary"
-                    : "btn"
-                }
-                onClick={() =>
-                  setCurrentPage(
-                    index + 1
-                  )
-                }
-              >
-                {index + 1}
-              </button>
-            )
-          )}
-
-          <button
-            className="btn btn-primary"
-            disabled={
-              currentPage ===
-              totalPages
-            }
-            onClick={() =>
-              setCurrentPage(
-                (prev) =>
-                  prev + 1
+            {Array.from(
+              {
+                length: totalPages,
+              },
+              (_, index) => (
+                <button
+                  key={index + 1}
+                  className={
+                    currentPage ===
+                      index + 1
+                      ? "btn btn-primary"
+                      : "btn"
+                  }
+                  onClick={() =>
+                    setCurrentPage(
+                      index + 1
+                    )
+                  }
+                >
+                  {index + 1}
+                </button>
               )
-            }
-          >
-            Next
-          </button>
-        </div>
-      )}
+            )}
+
+            <button
+              className="btn btn-primary"
+              disabled={
+                currentPage ===
+                totalPages
+              }
+              onClick={() =>
+                setCurrentPage(
+                  (prev) =>
+                    prev + 1
+                )
+              }
+            >
+              Next
+            </button>
+          </div>
+        )}
 
       {showReasonModal && (
         <div className="modal-overlay">
