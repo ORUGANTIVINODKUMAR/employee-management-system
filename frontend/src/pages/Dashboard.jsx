@@ -198,7 +198,7 @@ const Dashboard = () => {
               )}
             {isFinance &&
               menuButton("financeLeaves", <CalendarCheck size={18} />, "Finance Leaves")}
-            
+
             {isFinance &&
               menuButton(
                 "financeReimbursements",
@@ -700,7 +700,12 @@ const Dashboard = () => {
                 </button>
               </div>
 
-              <EditProfile />
+              <EditProfile
+                onSuccess={() => {
+                  setShowEditProfile(false);
+                  window.location.reload();
+                }}
+              />
             </div>
           </div>
         )}
