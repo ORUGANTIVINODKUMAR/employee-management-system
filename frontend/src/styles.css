@@ -4,7 +4,7 @@
   --secondary: #22c55e;
   --secondary-hover: #16a34a;
 
-  --background: #f4fdf7;
+  --background: #f4f4fd;
   --white: #ffffff;
 
   --border: #d1fae5;
@@ -907,17 +907,20 @@ body {
 ========================= */
 
 .portal-redesign {
-  background: #f7f8f5;
+  background: #edf4ff;
 }
-
 /* ===== SIDEBAR ===== */
 
 .modern-sidebar {
   width: 260px;
-  background: #ffffff;
-  border-right: 1px solid #e7ece9;
+  background: linear-gradient(
+    180deg,
+    #0f3d2e,
+    #14532d
+  );
+  border-right: none;
   padding: 0;
-  color: #0f3d2e;
+  color: white;
 }
 
 .brand-block {
@@ -958,7 +961,7 @@ body {
 }
 
 .sidebar-menu button {
-  color: #7c7c7c;
+   color: #d1fae5;
   font-weight: 700;
   border-radius: 16px;
   padding: 16px 18px;
@@ -1000,11 +1003,10 @@ body {
 
 .sidebar-user-box strong {
   display: block;
-  color: #123524;
+  color: white;
 }
-
 .sidebar-user-box span {
-  color: #94a3b8;
+  color: #bbf7d0;
   font-size: 13px;
 }
 
@@ -1012,8 +1014,8 @@ body {
   margin-top: 20px;
   width: 100%;
   justify-content: center;
-  background: #f4f7f5;
-  color: #123524;
+  background: rgba(255, 255, 255, 0.12);
+  color: white;
 }
 
 .compact-logout:hover {
@@ -1024,8 +1026,9 @@ body {
 
 .modern-main {
   padding: 40px;
+  background: #eef3f8;
+  min-height: 100vh;
 }
-
 .modern-page-header {
   margin-bottom: 34px;
 }
