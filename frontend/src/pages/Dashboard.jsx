@@ -757,6 +757,26 @@ const Dashboard = () => {
             <FinanceReimbursements />
           </div>
         )}
+        {isEmployee && (
+          <div
+            className={`modern-section-card ${activePage === "attendance"
+              ? "page-visible"
+              : "page-hidden"
+              }`}
+          >
+            <Attendance />
+          </div>
+        )}
+        {(isManagerOrHR || isFinance || isAdmin) && (
+          <div
+            className={`modern-section-card ${activePage === "attendanceReports"
+                ? "page-visible"
+                : "page-hidden"
+              }`}
+          >
+            <AdminAttendanceReports />
+          </div>
+        )}
         {activePage === "leaveCalendar" && (
           <div className="modern-section-card">
             <LeaveCalendar />
@@ -801,4 +821,3 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
-
