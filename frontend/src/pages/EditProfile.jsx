@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import api from "../api/api";
 
-const EditProfile = () => {
+const EditProfile = ({ onSuccess }) => {
   const [profile, setProfile] = useState(null);
   const [phone, setPhone] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
@@ -33,10 +33,16 @@ const EditProfile = () => {
 
       await api.put("/profile/mobile", { phone });
 
-      setMessage("Mobile number updated successfully");
-      fetchProfile();
+      alert("Mobile number updated successfully");
+
+      if (onSuccess) {
+        onSuccess();
+      } else {
+        window.location.reload();
+      }
     } catch (error) {
       setError(error.response?.data?.message || "Mobile update failed");
+      alert(error.response?.data?.message || "Mobile update failed");
     }
   };
 
@@ -49,6 +55,7 @@ const EditProfile = () => {
 
       if (newPassword !== confirmPassword) {
         setError("New password and confirm password do not match");
+        alert("New password and confirm password do not match");
         return;
       }
 
@@ -57,13 +64,20 @@ const EditProfile = () => {
         newPassword,
       });
 
+      alert("Password changed successfully. Admin has been notified.");
+
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
 
-      setMessage("Password changed successfully. Admin has been notified.");
+      if (onSuccess) {
+        onSuccess();
+      } else {
+        window.location.reload();
+      }
     } catch (error) {
       setError(error.response?.data?.message || "Password change failed");
+      alert(error.response?.data?.message || "Password change failed");
     }
   };
 
@@ -88,12 +102,24 @@ const EditProfile = () => {
       <div className="card">
         <h3>Employee Details</h3>
 
-        <p><strong>Name:</strong> {profile.name}</p>
-        <p><strong>Employee ID:</strong> {profile.employeeId}</p>
-        <p><strong>Email:</strong> {profile.email}</p>
-        <p><strong>Designation:</strong> {profile.designation}</p>
-        <p><strong>Role:</strong> {profile.role}</p>
-        <p><strong>Department:</strong> {profile.subcategoryId?.name || "N/A"}</p>
+        <p>
+          <strong>Name:</strong> {profile.name}
+        </p>
+        <p>
+          <strong>Employee ID:</strong> {profile.employeeId}
+        </p>
+        <p>
+          <strong>Email:</strong> {profile.email}
+        </p>
+        <p>
+          <strong>Designation:</strong> {profile.designation}
+        </p>
+        <p>
+          <strong>Role:</strong> {profile.role}
+        </p>
+        <p>
+          <strong>Department:</strong> {profile.subcategoryId?.name || "N/A"}
+        </p>
         <p>
           <strong>Date of Joining:</strong>{" "}
           {profile.dateOfJoining
