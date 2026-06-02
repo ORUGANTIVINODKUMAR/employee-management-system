@@ -1675,3 +1675,51 @@ body {
   letter-spacing: 3px;
   color: #94a3b8;
 }
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 20px;
+}
+
+.modal-box {
+  background: #fff;
+  width: 700px;
+  max-width: 95%;
+  max-height: 90vh;
+  overflow-y: auto;
+  border-radius: 18px;
+  padding: 22px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+}
+
+.profile-modal {
+  border: 1px solid #dcefe6;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 15px;
+}
+
+.modal-header h2 {
+  margin: 0;
+  color: #063f2c;
+}
+
+.modal-close {
+  border: none;
+  background: #f1f5f3;
+  color: #063f2c;
+  font-size: 26px;
+  cursor: pointer;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+}

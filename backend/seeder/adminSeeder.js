@@ -12,7 +12,7 @@ const seedAdmin = async () => {
     await connectDB();
 
     const existingAdmin = await User.findOne({
-      email: "admin@upsilonservices.com",
+      email: "info@upsilonservices.com",
     });
 
     if (existingAdmin) {
@@ -27,7 +27,7 @@ const seedAdmin = async () => {
 
     await User.create({
       name: "Admin",
-      email: "admin@upsilonservices.com",
+      email: "info@upsilonservices.com",
       passwordHash,
       role: "Admin",
       isActive: true,

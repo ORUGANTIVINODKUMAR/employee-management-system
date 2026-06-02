@@ -32,11 +32,14 @@ import Notifications from "./Notifications";
 import Attendance from "./Attendance";
 import HolidayManagement from "./HolidayManagement";
 import AdminAttendanceReports from "./AdminAttendanceReports";
+import EditProfile from "./EditProfile";
+
 const Dashboard = () => {
   const { user, logout } = useAuth();
   const [activePage, setActivePage] = useState("dashboard");
   const [stats, setStats] = useState({});
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showEditProfile, setShowEditProfile] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const isAdmin = user?.role === "Admin";
   const isEmployee = user?.role === "Employee";
@@ -172,6 +175,7 @@ const Dashboard = () => {
               menuButton("reimbursements", <Receipt size={18} />, "Reimbursements")}
             {isEmployee &&
               menuButton("attendance", <CalendarCheck size={18} />, "Attendance")}
+
             {isManagerOrHR &&
               menuButton("approvals", <CalendarCheck size={18} />, "Leave Approvals")}
             {(isManagerOrHR || isFinance || isAdmin) &&
@@ -331,10 +335,19 @@ const Dashboard = () => {
                         <p>{user?.email}</p>
                       </div>
 
-                      <span className="active-pill">
-                        <BadgeCheck size={14} />
-                        Active
-                      </span>
+                      <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+                        <button
+                          className="btn btn-primary"
+                          onClick={() => setShowEditProfile(true)}
+                        >
+                          Edit
+                        </button>
+
+                        <span className="active-pill">
+                          <BadgeCheck size={14} />
+                          Active
+                        </span>
+                      </div>
                     </div>
 
                     <div className="profile-divider" />
@@ -647,14 +660,6 @@ const Dashboard = () => {
             <AdminReimbursementReports />
           </div>
         )}
-        {isEmployee && activePage === "attendance" && (
-              <Attendance />
-            )}
-
-            {(isAdmin || isManagerOrHR || isFinance) &&
-              activePage === "attendanceReports" && (
-                <AdminAttendanceReports />
-              )}
         {activePage === "financeLeaves" && isFinance && (
           <div className="modern-section-card">
             <FinanceLeaves />
@@ -679,6 +684,24 @@ const Dashboard = () => {
         {activePage === "holidays" && (
           <div className="modern-section-card">
             <HolidayManagement />
+          </div>
+        )}
+        {showEditProfile && (
+          <div className="modal-overlay">
+            <div className="modal-box profile-modal">
+              <div className="modal-header">
+                <h2>Edit Profile</h2>
+
+                <button
+                  className="modal-close"
+                  onClick={() => setShowEditProfile(false)}
+                >
+                  ×
+                </button>
+              </div>
+
+              <EditProfile />
+            </div>
           </div>
         )}
       </main>

@@ -11,6 +11,7 @@
     </li>
   </>
 )}
+
 {["Manager", "HR", "Finance", "Admin"].includes(
   user?.role
 ) && (
@@ -20,3 +21,10 @@
     </Link>
   </li>
 )}
+
+{/* Add this */}
+<li>
+  <Link to="/edit-profile">
+    Edit Profile
+  </Link>
+</li>

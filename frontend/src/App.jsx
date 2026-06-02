@@ -5,7 +5,7 @@ import Login from "./pages/Login.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import LeaveCalendar from "./pages/LeaveCalendar";
-
+import EditProfile from "./pages/EditProfile.jsx";
 function App() {
   return (
     <Routes>
@@ -30,6 +30,14 @@ function App() {
         element={
           <ProtectedRoute>
             <LeaveCalendar />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/edit-profile"
+        element={
+          <ProtectedRoute>
+            <EditProfile />
           </ProtectedRoute>
         }
       />
