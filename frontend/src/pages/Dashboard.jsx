@@ -246,10 +246,7 @@ const Dashboard = () => {
           <h1>
             Hello, {user?.firstName || user?.name}
           </h1>
-
           <p>
-
-
 
             Here&apos;s a snapshot of your profile and recent activity.
           </p>
@@ -481,6 +478,50 @@ const Dashboard = () => {
 
             {isAdmin && (
               <>
+                <div className="employee-dashboard-grid">
+                  <div className="modern-profile-card">
+                    <div className="profile-main-row">
+                      <div className="large-avatar">
+                        {user?.name?.charAt(0)?.toUpperCase()}
+                      </div>
+
+                      <div>
+                        <h2>{user?.name}</h2>
+                        <p>{user?.email}</p>
+                      </div>
+
+                      <span className="active-pill">
+                        <BadgeCheck size={14} />
+                        Administrator
+                      </span>
+                    </div>
+
+                    <div className="profile-divider" />
+
+                    <div className="profile-detail-grid">
+                      <div>
+                        <span>Total Employees</span>
+                        <strong>{stats.totalEmployees || 0}</strong>
+                      </div>
+
+                      <div>
+                        <span>Departments</span>
+                        <strong>{stats.departments || 0}</strong>
+                      </div>
+
+                      <div>
+                        <span>Role</span>
+                        <strong>Admin</strong>
+                      </div>
+
+                      <div>
+                        <span>Status</span>
+                        <strong>Active</strong>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="modern-stats-grid">
                   <div className="mini-stat-card">
                     <Users size={23} />
@@ -495,12 +536,61 @@ const Dashboard = () => {
                     <h3>{stats.departments || 0}</h3>
                     <p>company units</p>
                   </div>
+
+                  <div className="mini-stat-card">
+                    <CalendarCheck size={23} />
+                    <span>Pending Leaves</span>
+                    <h3>{stats.pendingLeaves || 0}</h3>
+                    <p>awaiting approval</p>
+                  </div>
+
+                  <div className="mini-stat-card">
+                    <Receipt size={23} />
+                    <span>Pending Claims</span>
+                    <h3>{stats.pendingReimbursements || 0}</h3>
+                    <p>awaiting review</p>
+                  </div>
                 </div>
 
                 <div className="modern-section-card">
-                  <h3>Organization Overview</h3>
+                  <h3>Quick Actions</h3>
 
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: "15px",
+                      flexWrap: "wrap",
+                      marginTop: "15px",
+                    }}
+                  >
+                    <button
+                      className="btn btn-primary"
+                      onClick={() => setActivePage("users")}
+                    >
+                      Add Employee
+                    </button>
 
+                    <button
+                      className="btn btn-primary"
+                      onClick={() => setActivePage("departments")}
+                    >
+                      Manage Departments
+                    </button>
+
+                    <button
+                      className="btn btn-primary"
+                      onClick={() => setActivePage("leaveReports")}
+                    >
+                      Leave Reports
+                    </button>
+
+                    <button
+                      className="btn btn-primary"
+                      onClick={() => setActivePage("reimbursementReports")}
+                    >
+                      Reimbursement Reports
+                    </button>
+                  </div>
                 </div>
               </>
             )}
@@ -580,10 +670,6 @@ const Dashboard = () => {
             {!isAdmin && !isFinance && <SignatureUploader />}
           </>
         )}
-
-
-
-
 
         {isAdmin && (
           <div
