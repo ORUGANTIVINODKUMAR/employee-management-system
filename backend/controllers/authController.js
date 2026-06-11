@@ -64,6 +64,7 @@ export const loginUser = async (req, res) => {
         subcategoryId: user.subcategoryId,
         phone: user.phone,
         dateOfJoining: user.dateOfJoining,
+        mustChangePassword: user.mustChangePassword,
       },
     });
   } catch (error) {
@@ -93,7 +94,7 @@ export const logoutUser = async (req, res) => {
     });
   }
 };
-
+;
 export const getMe = async (req, res) => {
   try {
     const user = await User.findById(req.user._id)
@@ -103,6 +104,61 @@ export const getMe = async (req, res) => {
     res.status(200).json({
       success: true,
       user,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+export const changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "Current password and new password are required",
+      });
+    }
+
+    if (newPassword.length < 8) {
+      return res.status(400).json({
+        success: false,
+        message: "New password must be at least 8 characters",
+      });
+    }
+
+    const user = await User.findById(req.user._id);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    const isMatch = await bcrypt.compare(
+      currentPassword,
+      user.passwordHash
+    );
+
+    if (!isMatch) {
+      return res.status(400).json({
+        success: false,
+        message: "Current password is incorrect",
+      });
+    }
+
+    user.passwordHash = await bcrypt.hash(newPassword, 10);
+    user.mustChangePassword = false;
+
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Password changed successfully",
     });
   } catch (error) {
     res.status(500).json({

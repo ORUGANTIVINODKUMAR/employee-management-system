@@ -49,6 +49,13 @@ const FinanceReimbursements = () => {
     );
   useEffect(() => {
     fetchRequests();
+
+    const interval = setInterval(
+      fetchRequests,
+      10000
+    );
+
+    return () => clearInterval(interval);
   }, []);
 
   const fetchRequests = async () => {
@@ -106,7 +113,7 @@ const FinanceReimbursements = () => {
         TotalAmount:
           item.totalReimbursement,
 
-        Status: item.status,
+        FinalStatus: item.finalStatus,
 
         FinanceStatus:
           item.financeStatus,
@@ -180,7 +187,7 @@ const FinanceReimbursements = () => {
           <Users size={22} />
           <span>Total Claims</span>
           <h3>{safeRequests.length}</h3>
-          <p>approved</p>
+          <p>ready for finance</p>
         </div>
 
         <div className="mini-stat-card">
@@ -200,7 +207,7 @@ const FinanceReimbursements = () => {
         <div className="mini-stat-card">
           <Wallet size={22} />
           <span>Total Amount</span>
-          <h3>₹ {totalAmount}</h3>
+          <h3>₹ {totalAmount.toLocaleString("en-IN")}</h3>
           <p>approved value</p>
         </div>
       </div>
@@ -241,6 +248,7 @@ const FinanceReimbursements = () => {
           </button>
         ))}
       </div>
+
       <div className="table-wrapper modern-table-wrapper">
         <table className="custom-table">
           <thead>
@@ -249,7 +257,7 @@ const FinanceReimbursements = () => {
               <th>Business Purpose</th>
               <th>Total Amount</th>
               <th>Receipt</th>
-              <th>Status</th>
+              <th>Final Approval</th>
               <th>Finance Status</th>
               <th>Action</th>
             </tr>
@@ -275,18 +283,31 @@ const FinanceReimbursements = () => {
 
                 <td>{request.businessPurpose}</td>
 
-                <td>₹ {request.totalReimbursement}</td>
+                <td>₹ {Number(
+                  request.totalReimbursement || 0
+                ).toLocaleString("en-IN")}</td>
 
                 <td>
-                  {request.receiptFile ? (
-                    <a
-                      href={request.receiptFile}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="file-link"
+                  {request.receiptFiles?.length > 0 ? (
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "6px",
+                      }}
                     >
-                      View Receipt
-                    </a>
+                      {request.receiptFiles.map((file, index) => (
+                        <a
+                          key={index}
+                          href={file}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="file-link"
+                        >
+                          View Receipt {index + 1}
+                        </a>
+                      ))}
+                    </div>
                   ) : (
                     "N/A"
                   )}
@@ -294,7 +315,7 @@ const FinanceReimbursements = () => {
 
                 <td>
                   <span className="badge badge-success">
-                    {request.status}
+                    {request.finalStatus}
                   </span>
                 </td>
 

@@ -7,13 +7,30 @@ const AdminSubcategories = () => {
   const [subcategories, setSubcategories] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [selectedDepartment, setSelectedDepartment] = useState(null);
+
   const fetchSubcategories = async () => {
     const { data } = await api.get("/admin/subcategories");
-    setSubcategories(data.subcategories);
+    setSubcategories(data.subcategories || []);
   };
 
   useEffect(() => {
     fetchSubcategories();
+
+    const handleUsersUpdated = () => {
+      fetchSubcategories();
+    };
+
+    window.addEventListener(
+      "users-updated",
+      handleUsersUpdated
+    );
+
+    return () => {
+      window.removeEventListener(
+        "users-updated",
+        handleUsersUpdated
+      );
+    };
   }, []);
 
   const handleSubmit = async (e) => {
@@ -25,7 +42,8 @@ const AdminSubcategories = () => {
 
     setName("");
     setShowModal(false);
-    fetchSubcategories();
+
+    await fetchSubcategories();
   };
 
   const handleDelete = async (id) => {
@@ -33,7 +51,7 @@ const AdminSubcategories = () => {
 
     try {
       await api.delete(`/admin/subcategories/${id}`);
-      fetchSubcategories();
+      await fetchSubcategories();
     } catch (error) {
       alert(
         error.response?.data?.message ||
@@ -42,13 +60,33 @@ const AdminSubcategories = () => {
     }
   };
 
+  const totalEmployees = subcategories.reduce(
+    (sum, item) => sum + (item.employeeCount || 0),
+    0
+  );
+
+  const totalTeamLeaders = subcategories.reduce(
+    (sum, item) => sum + (item.teamLeaderCount || 0),
+    0
+  );
+
+  const totalManagers = subcategories.reduce(
+    (sum, item) => sum + (item.managerCount || 0),
+    0
+  );
+
+  const totalHRs = subcategories.reduce(
+    (sum, item) => sum + (item.hrCount || 0),
+    0
+  );
+
   return (
     <>
       <div className="section-header">
         <div>
           <h2 className="card-title">Department Management</h2>
           <p className="section-subtitle">
-            Manage departments and organizational units.
+            Manage departments and view employees, team leaders, managers and HRs.
           </p>
         </div>
 
@@ -66,24 +104,21 @@ const AdminSubcategories = () => {
         </div>
 
         <div className="reimbursement-summary-card">
-          <span>Created Recently</span>
-          <h3>
-            {
-              subcategories.filter((item) => {
-                const created = new Date(item.createdAt);
-                const now = new Date();
-                const diffDays = (now - created) / (1000 * 60 * 60 * 24);
-                return diffDays <= 30;
-              }).length
-            }
-          </h3>
-          <p>last 30 days</p>
+          <span>Employees</span>
+          <h3>{totalEmployees}</h3>
+          <p>assigned employees</p>
         </div>
 
         <div className="reimbursement-summary-card">
-          <span>Status</span>
-          <h3>Active</h3>
-          <p>department setup</p>
+          <span>Team Leaders</span>
+          <h3>{totalTeamLeaders}</h3>
+          <p>department TLs</p>
+        </div>
+
+        <div className="reimbursement-summary-card">
+          <span>Managers / HR</span>
+          <h3>{totalManagers + totalHRs}</h3>
+          <p>approval users</p>
         </div>
       </div>
 
@@ -93,6 +128,10 @@ const AdminSubcategories = () => {
             <tr>
               <th>Department</th>
               <th>Employees</th>
+              <th>TL</th>
+              <th>Managers</th>
+              <th>HR</th>
+              <th>Total Users</th>
               <th>Created</th>
               <th>Status</th>
               <th>Actions</th>
@@ -111,13 +150,38 @@ const AdminSubcategories = () => {
                     <strong>{item.name}</strong>
                   </div>
                 </td>
+
+                <td>
+                  <span className="badge badge-success">
+                    {item.employeeCount || 0}
+                  </span>
+                </td>
+
+                <td>
+                  <span className="badge badge-pending">
+                    {item.teamLeaderCount || 0}
+                  </span>
+                </td>
+
+                <td>
+                  <span className="badge badge-pending">
+                    {item.managerCount || 0}
+                  </span>
+                </td>
+
+                <td>
+                  <span className="badge badge-pending">
+                    {item.hrCount || 0}
+                  </span>
+                </td>
+
                 <td>
                   <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                     <span className="badge badge-success">
-                      {item.userCount || item.users?.length || 0} Employees
+                      {item.userCount || 0}
                     </span>
 
-                    {item.users?.length > 0 && (
+                    {item.userCount > 0 && (
                       <button
                         className="btn btn-secondary"
                         onClick={() => setSelectedDepartment(item)}
@@ -127,6 +191,7 @@ const AdminSubcategories = () => {
                     )}
                   </div>
                 </td>
+
                 <td>{new Date(item.createdAt).toLocaleDateString()}</td>
 
                 <td>
@@ -147,7 +212,7 @@ const AdminSubcategories = () => {
 
             {subcategories.length === 0 && (
               <tr>
-                <td colSpan="5" style={{ textAlign: "center", padding: "24px" }}>
+                <td colSpan="9" style={{ textAlign: "center", padding: "24px" }}>
                   No departments found.
                 </td>
               </tr>
@@ -155,11 +220,12 @@ const AdminSubcategories = () => {
           </tbody>
         </table>
       </div>
+
       {selectedDepartment && (
         <div className="modal-overlay">
-          <div className="modal-card" style={{ maxWidth: "650px", width: "90%" }}>
+          <div className="modal-card" style={{ maxWidth: "850px", width: "95%" }}>
             <div className="modal-header">
-              <h3>{selectedDepartment.name} Employees</h3>
+              <h3>{selectedDepartment.name} Users</h3>
 
               <button onClick={() => setSelectedDepartment(null)}>
                 ✕
@@ -167,17 +233,34 @@ const AdminSubcategories = () => {
             </div>
 
             <div style={{ padding: "20px" }}>
-              <div className="reimbursement-summary-card" style={{ marginBottom: "16px" }}>
-                <span>Total Employees</span>
-                <h3>{selectedDepartment.users?.length || 0}</h3>
-                <p>assigned to this department</p>
+              <div className="reimbursement-summary-grid">
+                <div className="reimbursement-summary-card">
+                  <span>Employees</span>
+                  <h3>{selectedDepartment.employeeCount || 0}</h3>
+                </div>
+
+                <div className="reimbursement-summary-card">
+                  <span>Team Leaders</span>
+                  <h3>{selectedDepartment.teamLeaderCount || 0}</h3>
+                </div>
+
+                <div className="reimbursement-summary-card">
+                  <span>Managers</span>
+                  <h3>{selectedDepartment.managerCount || 0}</h3>
+                </div>
+
+                <div className="reimbursement-summary-card">
+                  <span>HR</span>
+                  <h3>{selectedDepartment.hrCount || 0}</h3>
+                </div>
               </div>
 
               <div className="table-wrapper modern-table-wrapper">
                 <table className="custom-table">
                   <thead>
                     <tr>
-                      <th>Employee</th>
+                      <th>Name</th>
+                      <th>Role</th>
                       <th>Employee ID</th>
                       <th>Email</th>
                       <th>Designation</th>
@@ -190,11 +273,26 @@ const AdminSubcategories = () => {
                         <td>
                           <strong>{user.name}</strong>
                         </td>
+                        <td>{user.role}</td>
                         <td>{user.employeeId || "N/A"}</td>
                         <td>{user.email}</td>
                         <td>{user.designation || "N/A"}</td>
                       </tr>
                     ))}
+
+                    {selectedDepartment.users?.length === 0 && (
+                      <tr>
+                        <td
+                          colSpan="5"
+                          style={{
+                            textAlign: "center",
+                            padding: "20px",
+                          }}
+                        >
+                          No users assigned to this department.
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -202,6 +300,7 @@ const AdminSubcategories = () => {
           </div>
         </div>
       )}
+
       {showModal && (
         <div className="modal-overlay">
           <div className="modal-card modern-department-modal">

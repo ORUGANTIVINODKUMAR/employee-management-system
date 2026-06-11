@@ -14,6 +14,10 @@ const AdminUsers = () => {
   const USERS_PER_PAGE = 10;
 
   const [subcategories, setSubcategories] = useState([]);
+  const [teams, setTeams] = useState([]);
+  const [managers, setManagers] = useState([]);
+  const [hrs, setHrs] = useState([]);
+  const [teamLeaders, setTeamLeaders] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [error, setError] = useState("");
@@ -30,6 +34,11 @@ const AdminUsers = () => {
     password: "",
     role: "Employee",
     subcategoryId: "",
+    teamId: "",
+    managerId: "",
+    hrId: "",
+    teamLeaderId: "",
+    assignedTeamIds: [],
   });
 
   const fetchUsers = async () => {
@@ -41,12 +50,61 @@ const AdminUsers = () => {
     const { data } = await api.get("/admin/subcategories");
     setSubcategories(data.subcategories);
   };
+  const fetchTeams = async () => {
+    const { data } = await api.get("/admin/teams");
+    setTeams(data.teams || []);
+  };
+  const fetchManagersAndTLs = async () => {
+    const { data } = await api.get("/admin/users");
 
+    setManagers(
+      data.users.filter(
+        (u) =>
+          u.role === "Manager" &&
+          u.isActive
+      )
+    );
+
+    setHrs(
+      data.users.filter(
+        (u) =>
+          u.role === "HR" &&
+          u.isActive
+      )
+    );
+
+    setTeamLeaders(
+      data.users.filter(
+        (u) => u.role === "TeamLeader"
+      )
+    );
+  };
   useEffect(() => {
-    fetchUsers();
-    fetchSubcategories();
-  }, []);
+    const loadData = async () => {
+      await fetchUsers();
+      await fetchSubcategories();
+      await fetchTeams();
+      await fetchManagersAndTLs();
+    };
 
+    loadData();
+
+    const handleTeamsUpdated = async () => {
+      await fetchTeams();
+    };
+
+    window.addEventListener(
+      "teams-updated",
+      handleTeamsUpdated
+    );
+
+    return () => {
+      window.removeEventListener(
+        "teams-updated",
+        handleTeamsUpdated
+      );
+    };
+  }, []);
   const filteredUsers = users.filter((user) => {
     const matchesRole =
       activeFilter === "All" ? true : user.role === activeFilter;
@@ -88,7 +146,15 @@ const AdminUsers = () => {
   const activeUsers = users.filter(
     (user) => user.isActive
   ).length;
+  const selectedTeam = (teams || []).find(
+    (team) => team._id === formData.teamId
+  );
 
+  const selectedTeamManagers =
+    selectedTeam?.managerIds || [];
+
+  const selectedTeamLeader =
+    selectedTeam?.teamLeaderId || null;
   const exportUsersToExcel = () => {
     const exportData = filteredUsers.map((user) => ({
       Name: user.name,
@@ -142,10 +208,6 @@ const AdminUsers = () => {
       [name]: value,
     };
 
-    if (name === "role" && value !== "Employee") {
-      updatedData.subcategoryId = "";
-    }
-
     if (name === "firstName" || name === "lastName") {
       updatedData.name =
         `${updatedData.firstName} ${updatedData.lastName}`.trim();
@@ -168,6 +230,11 @@ const AdminUsers = () => {
       password: "",
       role: "Employee",
       subcategoryId: "",
+      teamId: "",
+      managerId: "",
+      hrId: "",
+      teamLeaderId: "",
+      assignedTeamIds: [],
     });
   };
 
@@ -179,17 +246,31 @@ const AdminUsers = () => {
         setError("Phone number must be exactly 10 digits after +91.");
         return;
       }
+      const today = new Date().toISOString().split("T")[0];
 
+      if (formData.dateOfJoining > today) {
+        setError("Date of joining cannot be a future date.");
+        return;
+      }
       if (formData.role === "Employee" && !formData.subcategoryId) {
         setError("Department is required for Employee role.");
         return;
       }
-
+      if (
+        !formData.email
+          .toLowerCase()
+          .endsWith("@upsilonservices.com")
+      ) {
+        setError(
+          "Only @upsilonservices.com email addresses are allowed."
+        );
+        return;
+      }
       const payload = {
         ...formData,
         phone: `+91${formData.phone}`,
         subcategoryId:
-          formData.role === "Employee"
+          ["Employee", "TeamLeader", "Manager", "HR"].includes(formData.role)
             ? formData.subcategoryId
             : "",
       };
@@ -205,9 +286,16 @@ const AdminUsers = () => {
         await api.post("/admin/users", payload);
       }
 
+      window.dispatchEvent(
+        new CustomEvent("users-updated")
+      );
+
+      await fetchUsers();
+      await fetchManagersAndTLs();
+      await fetchTeams();
+
       resetForm();
       setShowModal(false);
-      fetchUsers();
       setCurrentPage(1);
       setEditingUser(null);
     } catch (error) {
@@ -220,7 +308,14 @@ const AdminUsers = () => {
 
     try {
       await api.delete(`/admin/users/${id}`);
-      fetchUsers();
+
+      window.dispatchEvent(
+        new CustomEvent("users-updated")
+      );
+
+      await fetchUsers();
+      await fetchManagersAndTLs();
+      await fetchTeams();
     } catch (error) {
       alert(error.response?.data?.message || "Delete failed");
     }
@@ -243,6 +338,14 @@ const AdminUsers = () => {
       role: user.role || "Employee",
       subcategoryId: user.subcategoryId?._id || "",
       isActive: user.isActive,
+      teamId: user.teamId?._id || "",
+      managerId: user.managerId?._id || "",
+      hrId: user.hrId?._id || "",
+      teamLeaderId: user.teamLeaderId?._id || "",
+      assignedTeamIds:
+        user.assignedTeamIds?.map(
+          (team) => team._id
+        ) || [],
     });
 
     setShowModal(true);
@@ -318,7 +421,7 @@ const AdminUsers = () => {
       </div>
 
       <div className="leave-filter-tabs">
-        {["All", "Employee", "Manager", "HR", "Finance"].map((filter) => (
+        {["All", "Employee", "TeamLeader", "Manager", "HR", "Finance"].map((filter) => (
           <button
             key={filter}
             className={activeFilter === filter ? "active-filter" : ""}
@@ -544,6 +647,8 @@ const AdminUsers = () => {
                   <label>Employee ID</label>
                   <input
                     name="employeeId"
+                    disabled={editingUser}
+
                     placeholder="EMP001"
                     value={formData.employeeId}
                     onChange={handleChange}
@@ -558,6 +663,7 @@ const AdminUsers = () => {
                     name="dateOfJoining"
                     value={formData.dateOfJoining}
                     onChange={handleChange}
+                    max={new Date().toISOString().split("T")[0]}
                     required
                   />
                 </div>
@@ -617,7 +723,7 @@ const AdminUsers = () => {
                   <input
                     name="email"
                     type="email"
-                    placeholder="employee@company.com"
+                    placeholder="employee@upsilonservices.com"
                     value={formData.email}
                     onChange={handleChange}
                     required
@@ -644,6 +750,7 @@ const AdminUsers = () => {
               <div className="grid-2">
                 <div className="input-group">
                   <label>Role</label>
+
                   <select
                     name="role"
                     value={formData.role}
@@ -651,13 +758,14 @@ const AdminUsers = () => {
                     required
                   >
                     <option value="Employee">Employee</option>
+                    <option value="TeamLeader">Team Leader</option>
                     <option value="Manager">Manager</option>
                     <option value="HR">HR</option>
                     <option value="Finance">Finance</option>
                   </select>
                 </div>
 
-                {formData.role === "Employee" && (
+                {["TeamLeader", "Manager", "HR"].includes(formData.role) && (
                   <div className="input-group">
                     <label>Department</label>
 
@@ -679,9 +787,168 @@ const AdminUsers = () => {
                 )}
               </div>
 
-              <button className="btn btn-primary" type="submit">
-                {editingUser ? "Update User" : "Create User"}
-              </button>
+              {formData.role === "Employee" && (
+                <div className="grid-2">
+                  <div className="input-group">
+                    <label>Team</label>
+
+                    <select
+                      name="teamId"
+                      value={formData.teamId}
+                      onChange={(e) => {
+                        const teamId = e.target.value;
+
+                        const team = teams.find(
+                          (item) => item._id === teamId
+                        );
+
+                        setFormData({
+                          ...formData,
+                          teamId,
+                          subcategoryId: team?.departmentId?._id || "",
+                          teamLeaderId: team?.teamLeaderId?._id || "",
+                          managerId: team?.managerIds?.[0]?._id || "",
+                          hrId: team?.hrIds?.[0]?._id || "",
+                        });
+                      }}
+                      required
+                    >
+
+                      <option value="">Select Team</option>
+
+                      {(teams || []).map((team) => (
+                        <option key={team._id} value={team._id}>
+                          {team.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="input-group">
+                    <label>Department</label>
+
+                    <input
+                      value={selectedTeam?.departmentId?.name || ""}
+                      disabled
+                    />
+                  </div>
+                  <div className="input-group">
+                    <label>Team Leader</label>
+
+                    <input
+                      value={selectedTeamLeader?.name || "No Team Leader assigned"}
+                      disabled
+                    />
+
+                    <input
+                      type="hidden"
+                      name="teamLeaderId"
+                      value={formData.teamLeaderId}
+                    />
+                  </div>
+                  <div className="input-group">
+                    <label>Manager</label>
+
+                    <input
+                      value={
+                        selectedTeam?.managerIds?.[0]?.name || ""
+                      }
+                      disabled
+                    />
+                  </div>
+                  <div className="input-group">
+                    <label>HR</label>
+
+                    <input
+                      value={
+                        selectedTeam?.hrIds?.[0]?.name || ""
+                      }
+                      disabled
+                    />
+                  </div>
+                </div>
+              )}
+
+              {formData.role === "TeamLeader" && (
+                <div className="grid-2">
+                  <div className="input-group">
+                    <label>Team</label>
+
+                    <select
+                      name="teamId"
+                      value={formData.teamId}
+                      onChange={handleChange}
+                      required
+                    >
+                      <option value="">Select Team</option>
+
+                      {(teams || []).map((team) => (
+                        <option key={team._id} value={team._id}>
+                          {team.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="input-group">
+                    <div className="input-group">
+                      <label>Reporting Manager</label>
+
+                      <select
+                        value={formData.managerId}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            managerId: e.target.value,
+                          })
+                        }
+                      >
+                        <option value="">Select Manager</option>
+
+                        {managers.map((manager) => (
+                          <option key={manager._id} value={manager._id}>
+                            {manager.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="input-group">
+                      <label>Reporting HR</label>
+
+                      <select
+                        value={formData.hrId}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            hrId: e.target.value,
+                          })
+                        }
+                      >
+                        <option value="">Select HR</option>
+
+                        {hrs.map((hr) => (
+                          <option key={hr._id} value={hr._id}>
+                            {hr.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  marginTop: "20px",
+                }}
+              >
+                <button className="btn btn-primary" type="submit">
+                  {editingUser ? "Update User" : "Create User"}
+                </button>
+              </div>
             </form>
           </div>
         </div>

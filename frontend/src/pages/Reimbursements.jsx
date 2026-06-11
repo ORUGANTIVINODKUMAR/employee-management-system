@@ -57,7 +57,7 @@ const Reimbursements = () => {
     const matchesFilter =
       activeFilter === "All"
         ? true
-        : item.status === activeFilter;
+        : item.finalStatus === activeFilter;
 
     const search = searchTerm.toLowerCase();
 
@@ -65,8 +65,7 @@ const Reimbursements = () => {
       item.businessPurpose
         ?.toLowerCase()
         .includes(search) ||
-      item.status
-        ?.toLowerCase()
+      item.finalStatus?.toLowerCase()
         .includes(search);
 
     return matchesFilter && matchesSearch;
@@ -75,15 +74,29 @@ const Reimbursements = () => {
   const totalSubmitted = (requests || []).length;
 
   const approvedAmount = requests
-    .filter((item) => item.status === "Approved")
+    .filter((item) => <span
+      className={
+        [
+          "Approved by Manager",
+          "Approved by HR",
+          "Paid by Finance",
+        ].includes(item.finalStatus)
+          ? "badge badge-success"
+          : item.finalStatus?.includes("Rejected")
+            ? "badge badge-danger"
+            : "badge badge-pending"
+      }
+    >
+      {item.finalStatus}
+    </span>)
     .reduce((sum, item) => sum + Number(item.totalReimbursement || 0), 0);
 
   const pendingAmount = requests
-    .filter((item) => item.status === "Pending")
+    .filter((item) => item.finalStatus === "Pending Final Approval")
     .reduce((sum, item) => sum + Number(item.totalReimbursement || 0), 0);
 
   const rejectedCount = requests.filter(
-    (item) => item.status === "Rejected"
+    (item) => item.finalStatus?.includes("Rejected")
   ).length;
   const totalPages =
     Math.ceil(
@@ -467,7 +480,15 @@ const Reimbursements = () => {
       </div>
 
       <div className="leave-filter-tabs">
-        {["All", "Pending", "Approved", "Rejected"].map((filter) => (
+        {[
+          "All",
+          "Pending Final Approval",
+          "Approved by Manager",
+          "Approved by HR",
+          "Rejected by Manager",
+          "Rejected by HR",
+          "Paid by Finance",
+        ].map((filter) => (
           <button
             key={filter}
             className={activeFilter === filter ? "active-filter" : ""}
@@ -543,7 +564,11 @@ const Reimbursements = () => {
                 <td>
                   <span
                     className={
-                      item.status === "Approved"
+                      [
+                        "Approved by Manager",
+                        "Approved by HR",
+                        "Paid by Finance",
+                      ].includes(item.finalStatus)
                         ? "badge badge-success"
                         : item.status === "Rejected"
                           ? "badge badge-danger"
@@ -556,28 +581,20 @@ const Reimbursements = () => {
 
                 <td>
                   <div className="approval-flow">
-                    <span
-                      className={
-                        item.approvals?.managerStatus === "Approved"
-                          ? "approval-approved"
-                          : item.approvals?.managerStatus === "Rejected"
-                            ? "approval-rejected"
-                            : "approval-pending"
-                      }
-                    >
-                      Manager: {item.approvals?.managerStatus || "Pending"}
+                    <span>
+                      TL: {item.tlStatus || "Pending"}
                     </span>
 
-                    <span
-                      className={
-                        item.approvals?.hrStatus === "Approved"
-                          ? "approval-approved"
-                          : item.approvals?.hrStatus === "Rejected"
-                            ? "approval-rejected"
-                            : "approval-pending"
-                      }
-                    >
-                      HR: {item.approvals?.hrStatus || "Pending"}
+                    <span>
+                      Manager: {item.managerStatus || "Pending"}
+                    </span>
+
+                    <span>
+                      HR: {item.hrStatus || "Pending"}
+                    </span>
+
+                    <span>
+                      Finance: {item.financeStatus || "Not Routed"}
                     </span>
                   </div>
                 </td>
@@ -604,7 +621,7 @@ const Reimbursements = () => {
 
             {filteredRequests.length === 0 && (
               <tr>
-                <td colSpan="6" style={{ textAlign: "center", padding: "24px" }}>
+                <td colSpan="7" style={{ textAlign: "center", padding: "24px" }}>
                   No reimbursement requests found.
                 </td>
               </tr>

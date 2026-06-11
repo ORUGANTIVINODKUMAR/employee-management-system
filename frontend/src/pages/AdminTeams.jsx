@@ -1,0 +1,432 @@
+import { useEffect, useState } from "react";
+import { Plus, Trash2, Users, Pencil } from "lucide-react";
+import api from "../api/api";
+
+const AdminTeams = () => {
+  const [teams, setTeams] = useState([]);
+  const [departments, setDepartments] = useState([]);
+  const [managers, setManagers] = useState([]);
+  const [hrs, setHrs] = useState([]);
+  const [teamLeaders, setTeamLeaders] = useState([]);
+  const [error, setError] = useState("");
+  const [editingTeam, setEditingTeam] = useState(null);
+
+  const [formData, setFormData] = useState({
+    name: "",
+    departmentId: "",
+    managerIds: [],
+    hrIds: [],
+    teamLeaderId: "",
+  });
+
+  const fetchTeams = async () => {
+    const { data } = await api.get("/admin/teams");
+    setTeams(data.teams || []);
+  };
+
+  const fetchDepartments = async () => {
+    const { data } = await api.get("/admin/subcategories");
+    setDepartments(data.subcategories || []);
+  };
+
+  const fetchUsers = async () => {
+    const { data } = await api.get("/admin/users");
+
+    setManagers(
+      (data.users || []).filter(
+        (user) => user.role === "Manager" && user.isActive
+      )
+    );
+
+    setHrs(
+      (data.users || []).filter(
+        (user) => user.role === "HR" && user.isActive
+      )
+    );
+    setTeamLeaders(
+      (data.users || []).filter(
+        (user) => user.role === "TeamLeader" && user.isActive
+      )
+    );
+  };
+
+  useEffect(() => {
+    fetchTeams();
+    fetchDepartments();
+    fetchUsers();
+
+    const handleUsersUpdated = () => {
+      fetchUsers();
+      fetchTeams();
+    };
+
+    const handleVisibilityRefresh = () => {
+      fetchUsers();
+      fetchTeams();
+    };
+
+    window.addEventListener(
+      "users-updated",
+      handleUsersUpdated
+    );
+
+    window.addEventListener(
+      "focus",
+      handleVisibilityRefresh
+    );
+
+    const interval = setInterval(() => {
+      fetchUsers();
+      fetchTeams();
+    }, 5000);
+
+    return () => {
+      window.removeEventListener(
+        "users-updated",
+        handleUsersUpdated
+      );
+
+      window.removeEventListener(
+        "focus",
+        handleVisibilityRefresh
+      );
+
+      clearInterval(interval);
+    };
+  }, []);
+
+  const resetForm = () => {
+    setFormData({
+      name: "",
+      departmentId: "",
+      managerIds: [],
+      hrIds: [],
+      teamLeaderId: "",
+    });
+
+    setEditingTeam(null);
+    setError("");
+  };
+
+  const handleEdit = (team) => {
+    setEditingTeam(team);
+
+    setFormData({
+      name: team.name || "",
+      departmentId: team.departmentId?._id || "",
+      teamLeaderId: team?.teamLeaderId?._id || "",
+      managerIds: team.managerIds?.map((m) => m._id) || [],
+      hrIds: team.hrIds?.map((hr) => hr._id) || [],
+    });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    try {
+      setError("");
+
+      if (!formData.name || !formData.departmentId) {
+        setError("Team name and department are required");
+        return;
+      }
+
+      if (editingTeam) {
+        await api.put(`/admin/teams/${editingTeam._id}`, formData);
+      } else {
+        await api.post("/admin/teams", formData);
+      }
+
+      await fetchTeams();
+      await fetchUsers();
+      window.dispatchEvent(
+        new CustomEvent("teams-updated")
+      );
+
+      alert(
+        editingTeam
+          ? "Team updated successfully"
+          : "Team created successfully"
+      );
+
+      resetForm();
+    } catch (error) {
+      setError(error.response?.data?.message || "Unable to save team");
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm("Delete this team?")) return;
+
+    try {
+      await api.delete(`/admin/teams/${id}`);
+      await fetchTeams();
+      window.dispatchEvent(
+        new CustomEvent("teams-updated")
+      );
+      alert("Team deleted successfully");
+    } catch (error) {
+      alert(error.response?.data?.message || "Delete failed");
+    }
+  };
+
+  const toggleManager = (managerId) => {
+    setFormData((prev) => ({
+      ...prev,
+      managerIds: prev.managerIds.includes(managerId)
+        ? prev.managerIds.filter((id) => id !== managerId)
+        : [...prev.managerIds, managerId],
+    }));
+  };
+
+  const toggleHR = (hrId) => {
+    setFormData((prev) => ({
+      ...prev,
+      hrIds: prev.hrIds.includes(hrId)
+        ? prev.hrIds.filter((id) => id !== hrId)
+        : [...prev.hrIds, hrId],
+    }));
+  };
+
+  return (
+    <>
+      <div className="section-header">
+        <div>
+          <h2 className="card-title">Team Management</h2>
+          <p className="section-subtitle">
+            Create teams and assign Managers and HR users.
+          </p>
+        </div>
+      </div>
+
+      <div className="card">
+        <h3>{editingTeam ? "Edit Team" : "Create New Team"}</h3>
+
+        {error && <div className="alert alert-error">{error}</div>}
+
+        <form className="auth-form" onSubmit={handleSubmit}>
+          <div className="grid-2">
+            <div className="input-group">
+              <label>Team Name</label>
+              <input
+                name="name"
+                placeholder="Example: Tax Team"
+                value={formData.name}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    name: e.target.value,
+                  })
+                }
+                required
+              />
+            </div>
+
+            <div className="input-group">
+              <label>Department</label>
+              <select
+                name="departmentId"
+                value={formData.departmentId}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    departmentId: e.target.value,
+                  })
+                }
+                required
+              >
+                <option value="">Select Department</option>
+
+                {departments.map((department) => (
+                  <option key={department._id} value={department._id}>
+                    {department.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="grid-2">
+            <div className="input-group">
+              <label>Assign Managers</label>
+
+              <div className="dropdown-check-list">
+                {managers.length === 0 ? (
+                  <p>No managers available</p>
+                ) : (
+                  managers.map((manager) => (
+                    <label key={manager._id} className="checkbox-row">
+                      <input
+                        type="checkbox"
+                        checked={formData.managerIds.includes(manager._id)}
+                        onChange={() => toggleManager(manager._id)}
+                      />
+                      {manager.name}
+                    </label>
+                  ))
+                )}
+              </div>
+            </div>
+
+            <div className="input-group">
+              <label>Assign HR</label>
+
+              <div className="dropdown-check-list">
+                {hrs.length === 0 ? (
+                  <p>No HR users available</p>
+                ) : (
+                  hrs.map((hr) => (
+                    <label key={hr._id} className="checkbox-row">
+                      <input
+                        type="checkbox"
+                        checked={formData.hrIds.includes(hr._id)}
+                        onChange={() => toggleHR(hr._id)}
+                      />
+                      {hr.name}
+                    </label>
+                  ))
+                )}
+              </div>
+            </div>
+            <div className="grid-2">
+              <div className="input-group">
+                <label>Assign Team Leader</label>
+
+                <select
+                  name="teamLeaderId"
+                  value={formData.teamLeaderId}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      teamLeaderId: e.target.value,
+                    })
+                  }
+                >
+                  <option value="">No Team Leader Assigned</option>
+
+                  {teamLeaders.map((tl) => (
+                    <option key={tl._id} value={tl._id}>
+                      {tl.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", gap: "10px", marginTop: "16px" }}>
+            <button className="btn btn-primary" type="submit">
+              <Plus size={18} />
+              {editingTeam ? "Update Team" : "Create Team"}
+            </button>
+
+            {editingTeam && (
+              <button
+                className="btn btn-secondary"
+                type="button"
+                onClick={resetForm}
+              >
+                Cancel Edit
+              </button>
+            )}
+          </div>
+        </form>
+      </div>
+
+      <div className="table-wrapper modern-table-wrapper">
+        <table className="custom-table">
+          <thead>
+            <tr>
+              <th>Team</th>
+              <th>Department</th>
+              <th>Managers</th>
+              <th>HR</th>
+              <th>Team Leader</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {teams.map((team) => (
+              <tr key={team._id}>
+                <td>
+                  <div className="user-cell">
+                    <div className="avatar-circle">
+                      <Users size={16} />
+                    </div>
+                    <strong>{team.name}</strong>
+                  </div>
+                </td>
+
+                <td>{team.departmentId?.name || "N/A"}</td>
+
+                <td>
+                  {team.managerIds?.length > 0
+                    ? team.managerIds.map((m) => m.name).join(", ")
+                    : "Not Assigned"}
+                </td>
+
+                <td>
+                  {team.hrIds?.length > 0
+                    ? team.hrIds.map((hr) => hr.name).join(", ")
+                    : "Not Assigned"}
+                </td>
+                <td>
+                  {team.teamLeaderId
+                    ? `${team.teamLeaderId.name} (${team.teamLeaderId.role})`
+                    : "Not Assigned"}
+                </td>
+
+                <td>
+                  <span
+                    className={
+                      team.isActive
+                        ? "badge badge-success"
+                        : "badge badge-danger"
+                    }
+                  >
+                    {team.isActive ? "Active" : "Inactive"}
+                  </span>
+                </td>
+
+                <td>
+                  <div style={{ display: "flex", gap: "8px" }}>
+                    <button className="btn" onClick={() => handleEdit(team)}>
+                      <Pencil size={14} />
+                      Edit
+                    </button>
+
+                    <button
+                      className="delete-icon-btn"
+                      onClick={() => handleDelete(team._id)}
+                    >
+                      <Trash2 size={16} />
+                      Delete
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+
+            {teams.length === 0 && (
+              <tr>
+                <td
+                  colSpan="7"
+                  style={{
+                    textAlign: "center",
+                    padding: "24px",
+                  }}
+                >
+                  No teams found.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </>
+  );
+};
+
+export default AdminTeams;

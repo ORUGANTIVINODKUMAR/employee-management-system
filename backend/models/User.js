@@ -46,13 +46,52 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ["Admin", "HR", "Manager", "Employee", "Finance"],
+      enum: [
+        "Admin",
+        "HR",
+        "Manager",
+        "TeamLeader",
+        "Employee",
+        "Finance",
+      ],
       default: "Employee",
     },
     subcategoryId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Subcategory",
       default: null,
+    },
+    teamId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Team",
+      default: null,
+    },
+
+    managerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+    hrId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+    teamLeaderId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+
+    assignedTeamIds: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Team",
+      },
+    ],
+    mustChangePassword: {
+      type: Boolean,
+      default: true,
     },
     isActive: {
       type: Boolean,

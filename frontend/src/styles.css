@@ -1726,3 +1726,47 @@ body {
   height: 38px;
   border-radius: 50%;
 }
+.dropdown-check-list {
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  padding: 10px;
+  max-height: 150px;
+  overflow-y: auto;
+  background: #fff;
+}
+
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.checkbox-row:hover {
+  background: #f3f4f6;
+  border-radius: 8px;
+}
+.dropdown-check-list {
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  padding: 10px;
+  max-height: 150px;
+  overflow-y: auto;
+  background: #fff;
+}
+
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.checkbox-row:hover {
+  background: #f3f4f6;
+  border-radius: 8px;
+}

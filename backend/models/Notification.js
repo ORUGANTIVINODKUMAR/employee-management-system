@@ -7,18 +7,34 @@ const notificationSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+
+    type: {
+      type: String,
+      enum: [
+        "Leave",
+        "Reimbursement",
+        "Attendance",
+        "Profile",
+        "System",
+      ],
+      default: "System",
+    },
+
     title: {
       type: String,
       required: true,
     },
+
     message: {
       type: String,
       required: true,
     },
+
     link: {
       type: String,
       default: "",
     },
+
     isRead: {
       type: Boolean,
       default: false,

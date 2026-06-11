@@ -8,23 +8,15 @@ import api from "../api/api";
 
 const AdminReimbursementReports = () => {
   const [requests, setRequests] = useState([]);
-  const [activeFilter, setActiveFilter] =
-    useState("All");
-
-  const [searchTerm, setSearchTerm] =
-    useState("");
-
-  const [currentPage, setCurrentPage] =
-    useState(1);
+  const [activeFilter, setActiveFilter] = useState("All");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
 
   const REPORTS_PER_PAGE = 10;
 
   const fetchReports = async () => {
     try {
-      const { data } = await api.get(
-        "/admin/reimbursement-reports"
-      );
-
+      const { data } = await api.get("/admin/reimbursement-reports");
       setRequests(data.reimbursements || []);
     } catch (error) {
       alert(
@@ -38,92 +30,49 @@ const AdminReimbursementReports = () => {
     fetchReports();
   }, []);
 
-  const filteredRequests = requests.filter(
-    (item) => {
-      const matchesFilter =
-        activeFilter === "All"
-          ? true
-          : item.status === activeFilter;
+  const filteredRequests = requests.filter((item) => {
+    const matchesFilter =
+      activeFilter === "All"
+        ? true
+        : item.finalStatus === activeFilter;
 
-      const search =
-        searchTerm.toLowerCase();
+    const search = searchTerm.toLowerCase();
 
-      const matchesSearch =
-        item.employeeId?.name
-          ?.toLowerCase()
-          .includes(search) ||
-        item.employeeId?.email
-          ?.toLowerCase()
-          .includes(search) ||
-        item.businessPurpose
-          ?.toLowerCase()
-          .includes(search);
+    const matchesSearch =
+      item.employeeId?.name?.toLowerCase().includes(search) ||
+      item.employeeId?.email?.toLowerCase().includes(search) ||
+      item.businessPurpose?.toLowerCase().includes(search) ||
+      item.finalStatus?.toLowerCase().includes(search);
 
-      return (
-        matchesFilter && matchesSearch
-      );
-    }
-  );
+    return matchesFilter && matchesSearch;
+  });
 
   const totalPages =
-    Math.ceil(
-      filteredRequests.length /
-        REPORTS_PER_PAGE
-    ) || 1;
+    Math.ceil(filteredRequests.length / REPORTS_PER_PAGE) || 1;
 
-  const startIndex =
-    (currentPage - 1) *
-    REPORTS_PER_PAGE;
+  const startIndex = (currentPage - 1) * REPORTS_PER_PAGE;
 
-  const paginatedRequests =
-    filteredRequests.slice(
-      startIndex,
-      startIndex + REPORTS_PER_PAGE
-    );
+  const paginatedRequests = filteredRequests.slice(
+    startIndex,
+    startIndex + REPORTS_PER_PAGE
+  );
 
   const exportToExcel = () => {
-    const exportData =
-      filteredRequests.map(
-        (item) => ({
-          Employee:
-            item.employeeId?.name ||
-            "N/A",
+    const exportData = filteredRequests.map((item) => ({
+      Employee: item.employeeId?.name || "N/A",
+      Email: item.employeeId?.email || "N/A",
+      BusinessPurpose: item.businessPurpose,
+      TotalAmount: item.totalReimbursement,
+      FinalStatus: item.finalStatus,
+      TLStatus: item.tlStatus,
+      ManagerStatus: item.managerStatus,
+      HRStatus: item.hrStatus,
+      FinanceStatus: item.financeStatus,
+      SubmittedDate: new Date(item.createdAt).toLocaleDateString(),
+    }));
 
-          Email:
-            item.employeeId?.email ||
-            "N/A",
-
-          BusinessPurpose:
-            item.businessPurpose,
-
-          TotalAmount:
-            item.totalReimbursement,
-
-          Status: item.status,
-
-          FinanceStatus:
-            item.financeStatus,
-
-          ManagerApproval:
-            item.approvals
-              ?.managerStatus,
-
-          HRApproval:
-            item.approvals?.hrStatus,
-
-          SubmittedDate: new Date(
-            item.createdAt
-          ).toLocaleDateString(),
-        })
-      );
-
-    const worksheet =
-      XLSX.utils.json_to_sheet(
-        exportData
-      );
-
-    const workbook =
-      XLSX.utils.book_new();
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
 
     XLSX.utils.book_append_sheet(
       workbook,
@@ -131,69 +80,48 @@ const AdminReimbursementReports = () => {
       "Reimbursement Reports"
     );
 
-    const excelBuffer =
-      XLSX.write(workbook, {
-        bookType: "xlsx",
-        type: "array",
-      });
+    const excelBuffer = XLSX.write(workbook, {
+      bookType: "xlsx",
+      type: "array",
+    });
 
-    const fileData = new Blob(
-      [excelBuffer],
-      {
-        type:
-          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8",
-      }
-    );
+    const fileData = new Blob([excelBuffer], {
+      type:
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8",
+    });
 
-    saveAs(
-      fileData,
-      "Reimbursement_Reports.xlsx"
-    );
+    saveAs(fileData, "Reimbursement_Reports.xlsx");
   };
 
   return (
     <>
       <div className="section-header">
         <div>
-          <h2 className="card-title">
-            Reimbursement Reports
-          </h2>
-
+          <h2 className="card-title">Reimbursement Reports</h2>
           <p className="section-subtitle">
             View all employee reimbursement requests.
           </p>
         </div>
 
-        <button
-          className="btn btn-primary"
-          onClick={exportToExcel}
-        >
+        <button className="btn btn-primary" onClick={exportToExcel}>
           Export Excel
         </button>
       </div>
 
-      <div
-        style={{
-          marginBottom: "18px",
-        }}
-      >
+      <div style={{ marginBottom: "18px" }}>
         <input
           type="text"
-          placeholder="Search by employee, email or business purpose..."
+          placeholder="Search by employee, email, purpose or status..."
           value={searchTerm}
           onChange={(e) => {
-            setSearchTerm(
-              e.target.value
-            );
-
+            setSearchTerm(e.target.value);
             setCurrentPage(1);
           }}
           style={{
             width: "100%",
             padding: "14px",
             borderRadius: "12px",
-            border:
-              "1px solid #d1d5db",
+            border: "1px solid #d1d5db",
             fontSize: "14px",
           }}
         />
@@ -202,22 +130,18 @@ const AdminReimbursementReports = () => {
       <div className="leave-filter-tabs">
         {[
           "All",
-          "Pending",
-          "Approved",
-          "Rejected",
+          "Pending Final Approval",
+          "Approved by Manager",
+          "Approved by HR",
+          "Rejected by Manager",
+          "Rejected by HR",
+          "Paid by Finance",
         ].map((filter) => (
           <button
             key={filter}
-            className={
-              activeFilter === filter
-                ? "active-filter"
-                : ""
-            }
+            className={activeFilter === filter ? "active-filter" : ""}
             onClick={() => {
-              setActiveFilter(
-                filter
-              );
-
+              setActiveFilter(filter);
               setCurrentPage(1);
             }}
           >
@@ -233,152 +157,116 @@ const AdminReimbursementReports = () => {
               <th>Employee</th>
               <th>Business Purpose</th>
               <th>Total Amount</th>
-              <th>Status</th>
+              <th>Receipts</th>
+              <th>Final Status</th>
               <th>Finance</th>
               <th>Approval Flow</th>
             </tr>
           </thead>
 
           <tbody>
-            {paginatedRequests.map(
-              (item) => (
-                <tr key={item._id}>
-                  <td>
-                    <div className="user-cell">
-                      <div className="avatar-circle">
-                        <Receipt size={16} />
-                      </div>
+            {paginatedRequests.map((item) => (
+              <tr key={item._id}>
+                <td>
+                  <div className="user-cell">
+                    <div className="avatar-circle">
+                      <Receipt size={16} />
+                    </div>
 
-                      <div>
-                        <strong>
-                          {
-                            item.employeeId
-                              ?.name
-                          }
-                        </strong>
+                    <div>
+                      <strong>{item.employeeId?.name}</strong>
+                      <p
+                        style={{
+                          fontSize: "13px",
+                          color: "var(--muted)",
+                        }}
+                      >
+                        {item.employeeId?.email}
+                      </p>
+                    </div>
+                  </div>
+                </td>
 
-                        <p
-                          style={{
-                            fontSize:
-                              "13px",
-                            color:
-                              "var(--muted)",
-                          }}
+                <td>{item.businessPurpose}</td>
+
+                <td>₹ {item.totalReimbursement}</td>
+
+                <td>
+                  {item.receiptFiles?.length > 0 ? (
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "6px",
+                      }}
+                    >
+                      {item.receiptFiles.map((file, index) => (
+                        <a
+                          key={index}
+                          href={`http://localhost:5000/${file}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="btn btn-secondary"
                         >
-                          {
-                            item.employeeId
-                              ?.email
-                          }
-                        </p>
-                      </div>
+                          View Receipt {index + 1}
+                        </a>
+                      ))}
                     </div>
-                  </td>
+                  ) : (
+                    <span>No Receipt</span>
+                  )}
+                </td>
 
-                  <td>
-                    {
-                      item.businessPurpose
+                <td>
+                  <span
+                    className={
+                      [
+                        "Approved by Manager",
+                        "Approved by HR",
+                        "Paid by Finance",
+                      ].includes(item.finalStatus)
+                        ? "badge badge-success"
+                        : item.finalStatus?.includes("Rejected")
+                        ? "badge badge-danger"
+                        : "badge badge-pending"
                     }
-                  </td>
+                  >
+                    {item.finalStatus}
+                  </span>
+                </td>
 
-                  <td>
-                    ₹{" "}
-                    {
-                      item.totalReimbursement
+                <td>
+                  <span
+                    className={
+                      item.financeStatus === "Paid"
+                        ? "badge badge-success"
+                        : item.financeStatus === "Pending Payment"
+                        ? "badge badge-pending"
+                        : "badge badge-danger"
                     }
-                  </td>
+                  >
+                    {item.financeStatus || "Not Routed"}
+                  </span>
+                </td>
 
-                  <td>
-                    <span
-                      className={
-                        item.status ===
-                        "Approved"
-                          ? "badge badge-success"
-                          : item.status ===
-                            "Rejected"
-                          ? "badge badge-danger"
-                          : "badge badge-pending"
-                      }
-                    >
-                      {item.status}
-                    </span>
-                  </td>
+                <td>
+                  <div className="approval-flow">
+                    <span>TL: {item.tlStatus || "Pending"}</span>
+                    <span>Manager: {item.managerStatus || "Pending"}</span>
+                    <span>HR: {item.hrStatus || "Pending"}</span>
+                    <span>Finance: {item.financeStatus || "Not Routed"}</span>
+                  </div>
+                </td>
+              </tr>
+            ))}
 
-                  <td>
-                    <span
-                      className={
-                        item.financeStatus ===
-                        "Paid"
-                          ? "badge badge-success"
-                          : item.financeStatus ===
-                            "Pending Payment"
-                          ? "badge badge-pending"
-                          : "badge badge-danger"
-                      }
-                    >
-                      {
-                        item.financeStatus
-                      }
-                    </span>
-                  </td>
-
-                  <td>
-                    <div className="approval-flow">
-                      <span
-                        className={
-                          item.approvals
-                            ?.managerStatus ===
-                          "Approved"
-                            ? "approval-approved"
-                            : item
-                                .approvals
-                                ?.managerStatus ===
-                              "Rejected"
-                            ? "approval-rejected"
-                            : "approval-pending"
-                        }
-                      >
-                        Manager:{" "}
-                        {item
-                          .approvals
-                          ?.managerStatus ||
-                          "Pending"}
-                      </span>
-
-                      <span
-                        className={
-                          item.approvals
-                            ?.hrStatus ===
-                          "Approved"
-                            ? "approval-approved"
-                            : item
-                                .approvals
-                                ?.hrStatus ===
-                              "Rejected"
-                            ? "approval-rejected"
-                            : "approval-pending"
-                        }
-                      >
-                        HR:{" "}
-                        {item.approvals
-                          ?.hrStatus ||
-                          "Pending"}
-                      </span>
-                    </div>
-                  </td>
-                </tr>
-              )
-            )}
-
-            {filteredRequests.length ===
-              0 && (
+            {filteredRequests.length === 0 && (
               <tr>
                 <td
-                  colSpan="6"
+                  colSpan="7"
                   style={{
-                    textAlign:
-                      "center",
-                    padding:
-                      "24px",
+                    textAlign: "center",
+                    padding: "24px",
                   }}
                 >
                   No reimbursement reports found.
@@ -389,13 +277,11 @@ const AdminReimbursementReports = () => {
         </table>
       </div>
 
-      {filteredRequests.length >
-        REPORTS_PER_PAGE && (
+      {filteredRequests.length > REPORTS_PER_PAGE && (
         <div
           style={{
             display: "flex",
-            justifyContent:
-              "center",
+            justifyContent: "center",
             alignItems: "center",
             gap: "10px",
             marginTop: "24px",
@@ -404,55 +290,28 @@ const AdminReimbursementReports = () => {
         >
           <button
             className="btn btn-primary"
-            disabled={
-              currentPage === 1
-            }
-            onClick={() =>
-              setCurrentPage(
-                (prev) =>
-                  prev - 1
-              )
-            }
+            disabled={currentPage === 1}
+            onClick={() => setCurrentPage((prev) => prev - 1)}
           >
             Previous
           </button>
 
-          {Array.from(
-            {
-              length: totalPages,
-            },
-            (_, index) => (
-              <button
-                key={index + 1}
-                className={
-                  currentPage ===
-                  index + 1
-                    ? "btn btn-primary"
-                    : "btn"
-                }
-                onClick={() =>
-                  setCurrentPage(
-                    index + 1
-                  )
-                }
-              >
-                {index + 1}
-              </button>
-            )
-          )}
+          {Array.from({ length: totalPages }, (_, index) => (
+            <button
+              key={index + 1}
+              className={
+                currentPage === index + 1 ? "btn btn-primary" : "btn"
+              }
+              onClick={() => setCurrentPage(index + 1)}
+            >
+              {index + 1}
+            </button>
+          ))}
 
           <button
             className="btn btn-primary"
-            disabled={
-              currentPage ===
-              totalPages
-            }
-            onClick={() =>
-              setCurrentPage(
-                (prev) =>
-                  prev + 1
-              )
-            }
+            disabled={currentPage === totalPages}
+            onClick={() => setCurrentPage((prev) => prev + 1)}
           >
             Next
           </button>

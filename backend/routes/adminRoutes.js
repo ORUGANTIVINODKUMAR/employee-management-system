@@ -3,6 +3,10 @@ import express from "express";
 import {
   createSubcategory,
   getSubcategories,
+  createTeam,
+  getTeams,
+  deleteTeam,
+  updateTeam,
   createUser,
   getUsers,
   deleteUser,
@@ -30,37 +34,68 @@ router.get(
   authorizeRoles("Admin"),
   getSubcategories
 );
+
+router.post(
+  "/teams",
+  protect,
+  authorizeRoles("Admin"),
+  createTeam
+);
+
+router.get(
+  "/teams",
+  protect,
+  authorizeRoles("Admin"),
+  getTeams
+);
+
+router.delete(
+  "/teams/:id",
+  protect,
+  authorizeRoles("Admin"),
+  deleteTeam
+);
+
 router.post(
   "/users",
   protect,
   authorizeRoles("Admin"),
   createUser
 );
-
+router.put(
+  "/teams/:id",
+  protect,
+  authorizeRoles("Admin"),
+  updateTeam
+);
 router.get(
   "/users",
   protect,
   authorizeRoles("Admin"),
   getUsers
 );
+
 router.delete(
   "/users/:id",
   protect,
   authorizeRoles("Admin"),
   deleteUser
 );
+
 router.put(
   "/users/:id",
   protect,
   authorizeRoles("Admin"),
   updateUser
 );
+
 router.delete(
   "/subcategories/:id",
   protect,
   authorizeRoles("Admin"),
   deleteSubcategory
 );
+
 router.get(
   "/leave-reports",
   protect,
@@ -74,4 +109,5 @@ router.get(
   authorizeRoles("Admin"),
   getAllReimbursementReports
 );
+
 export default router;

@@ -132,7 +132,7 @@ const LeaveCalendar = () => {
         <div>
           <h2 className="card-title">Organization Leave Calendar</h2>
           <p className="section-subtitle">
-            View approved employee leaves across the organization.
+            View manager-approved employee leaves across the organization.
           </p>
         </div>
       </div>
@@ -302,7 +302,9 @@ const LeaveCalendar = () => {
                 <td>{formatDate(event.start)}</td>
                 <td>{formatDate(event.end)}</td>
                 <td>
-                  <span className="badge badge-success">{event.status}</span>
+                  <span className="badge badge-success">
+                    Approved by Manager
+                  </span>
                 </td>
               </tr>
             ))}

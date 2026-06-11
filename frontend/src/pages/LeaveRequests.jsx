@@ -55,8 +55,8 @@ const LeaveRequests = () => {
 
       setRequests(
         data.leaveRequests ||
-          data.requests ||
-          []
+        data.requests ||
+        []
       );
     } catch (error) {
       console.log(
@@ -74,8 +74,8 @@ const LeaveRequests = () => {
       const matchesFilter =
         activeFilter === "All"
           ? true
-          : item.status ===
-            activeFilter;
+          : item.finalStatus ===
+          activeFilter;
 
       const search =
         searchTerm.toLowerCase();
@@ -84,7 +84,7 @@ const LeaveRequests = () => {
         item.leaveType
           ?.toLowerCase()
           .includes(search) ||
-        item.status
+        item.finalStatus
           ?.toLowerCase()
           .includes(search);
 
@@ -97,7 +97,7 @@ const LeaveRequests = () => {
   const totalPages =
     Math.ceil(
       filteredRequests.length /
-        REQUESTS_PER_PAGE
+      REQUESTS_PER_PAGE
     ) || 1;
 
   const startIndex =
@@ -108,25 +108,30 @@ const LeaveRequests = () => {
     filteredRequests.slice(
       startIndex,
       startIndex +
-        REQUESTS_PER_PAGE
+      REQUESTS_PER_PAGE
     );
 
   const pendingCount =
     safeRequests.filter(
       (item) =>
-        item.status === "Pending"
+        item.finalStatus ===
+        "Pending Final Approval"
     ).length;
 
   const approvedCount =
-    safeRequests.filter(
-      (item) =>
-        item.status === "Approved"
+    safeRequests.filter((item) =>
+      [
+        "Approved by Manager",
+        "Approved by HR",
+      ].includes(item.finalStatus)
     ).length;
 
   const rejectedCount =
-    safeRequests.filter(
-      (item) =>
-        item.status === "Rejected"
+    safeRequests.filter((item) =>
+      [
+        "Rejected by Manager",
+        "Rejected by HR",
+      ].includes(item.finalStatus)
     ).length;
 
   const handleChange = (e) => {
@@ -223,7 +228,7 @@ const LeaveRequests = () => {
       alert(
         error.response?.data
           ?.message ||
-          "Submission failed"
+        "Submission failed"
       );
 
       console.log(
@@ -240,7 +245,7 @@ const LeaveRequests = () => {
 
     setModalContent(
       content ||
-        "No details available."
+      "No details available."
     );
 
     setShowReasonModal(true);
@@ -328,15 +333,17 @@ const LeaveRequests = () => {
       <div className="leave-filter-tabs">
         {[
           "All",
-          "Pending",
-          "Approved",
-          "Rejected",
+          "Pending Final Approval",
+          "Approved by Manager",
+          "Approved by HR",
+          "Rejected by Manager",
+          "Rejected by HR",
         ].map((filter) => (
           <button
             key={filter}
             className={
               activeFilter ===
-              filter
+                filter
                 ? "active-filter"
                 : ""
             }
@@ -364,6 +371,7 @@ const LeaveRequests = () => {
               <th>Working Days</th>
               <th>Reason</th>
               <th>Status</th>
+              <th>Approval Flow</th>
               <th>Rejection Reason</th>
             </tr>
           </thead>
@@ -417,19 +425,34 @@ const LeaveRequests = () => {
                   <td>
                     <span
                       className={
-                        item.status ===
-                        "Approved"
+                        [
+                          "Approved by Manager",
+                          "Approved by HR",
+                        ].includes(item.finalStatus)
                           ? "badge badge-success"
-                          : item.status ===
+                          : item.finalStatus?.includes(
                             "Rejected"
-                          ? "badge badge-danger"
-                          : "badge badge-pending"
+                          )
+                            ? "badge badge-danger"
+                            : "badge badge-pending"
                       }
                     >
-                      {item.status}
+                      {item.finalStatus}
                     </span>
                   </td>
+                  <div>
+                    <div>
+                      TL: {item.tlStatus}
+                    </div>
 
+                    <div>
+                      Manager: {item.managerStatus}
+                    </div>
+
+                    <div>
+                      HR: {item.hrStatus}
+                    </div>
+                  </div>
                   <td>
                     {item.rejectionReason ? (
                       <button
@@ -453,93 +476,93 @@ const LeaveRequests = () => {
 
             {filteredRequests.length ===
               0 && (
-              <tr>
-                <td
-                  colSpan="6"
-                  style={{
-                    textAlign:
-                      "center",
-                    padding:
-                      "24px",
-                  }}
-                >
-                  No leave requests found.
-                </td>
-              </tr>
-            )}
+                <tr>
+                  <td
+                    colSpan="7"
+                    style={{
+                      textAlign:
+                        "center",
+                      padding:
+                        "24px",
+                    }}
+                  >
+                    No leave requests found.
+                  </td>
+                </tr>
+              )}
           </tbody>
         </table>
       </div>
 
       {filteredRequests.length >
         REQUESTS_PER_PAGE && (
-        <div
-          style={{
-            display: "flex",
-            justifyContent:
-              "center",
-            alignItems: "center",
-            gap: "10px",
-            marginTop: "24px",
-            flexWrap: "wrap",
-          }}
-        >
-          <button
-            className="btn btn-primary"
-            disabled={
-              currentPage === 1
-            }
-            onClick={() =>
-              setCurrentPage(
-                (prev) =>
-                  prev - 1
-              )
-            }
+          <div
+            style={{
+              display: "flex",
+              justifyContent:
+                "center",
+              alignItems: "center",
+              gap: "10px",
+              marginTop: "24px",
+              flexWrap: "wrap",
+            }}
           >
-            Previous
-          </button>
+            <button
+              className="btn btn-primary"
+              disabled={
+                currentPage === 1
+              }
+              onClick={() =>
+                setCurrentPage(
+                  (prev) =>
+                    prev - 1
+                )
+              }
+            >
+              Previous
+            </button>
 
-          {Array.from(
-            {
-              length: totalPages,
-            },
-            (_, index) => (
-              <button
-                key={index + 1}
-                className={
-                  currentPage ===
-                  index + 1
-                    ? "btn btn-primary"
-                    : "btn"
-                }
-                onClick={() =>
-                  setCurrentPage(
-                    index + 1
-                  )
-                }
-              >
-                {index + 1}
-              </button>
-            )
-          )}
-
-          <button
-            className="btn btn-primary"
-            disabled={
-              currentPage ===
-              totalPages
-            }
-            onClick={() =>
-              setCurrentPage(
-                (prev) =>
-                  prev + 1
+            {Array.from(
+              {
+                length: totalPages,
+              },
+              (_, index) => (
+                <button
+                  key={index + 1}
+                  className={
+                    currentPage ===
+                      index + 1
+                      ? "btn btn-primary"
+                      : "btn"
+                  }
+                  onClick={() =>
+                    setCurrentPage(
+                      index + 1
+                    )
+                  }
+                >
+                  {index + 1}
+                </button>
               )
-            }
-          >
-            Next
-          </button>
-        </div>
-      )}
+            )}
+
+            <button
+              className="btn btn-primary"
+              disabled={
+                currentPage ===
+                totalPages
+              }
+              onClick={() =>
+                setCurrentPage(
+                  (prev) =>
+                    prev + 1
+                )
+              }
+            >
+              Next
+            </button>
+          </div>
+        )}
 
       {showModal && (
         <div className="modal-overlay">
@@ -618,7 +641,7 @@ const LeaveRequests = () => {
                           selectedStartDate,
                         endDate:
                           formData.endDate &&
-                          formData.endDate <
+                            formData.endDate <
                             selectedStartDate
                             ? ""
                             : formData.endDate,

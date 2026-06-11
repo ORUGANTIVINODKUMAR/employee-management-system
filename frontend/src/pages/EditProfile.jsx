@@ -13,8 +13,15 @@ const EditProfile = ({ onSuccess }) => {
   const fetchProfile = async () => {
     try {
       const { data } = await api.get("/profile/me");
+
       setProfile(data.user);
-      setPhone(data.user.phone || "");
+
+      const savedPhone = data.user.phone || "";
+      const phoneWithoutCountryCode = savedPhone.startsWith("+91")
+        ? savedPhone.replace("+91", "")
+        : savedPhone;
+
+      setPhone(phoneWithoutCountryCode);
     } catch (error) {
       setError("Unable to load profile");
     }
@@ -31,7 +38,11 @@ const EditProfile = ({ onSuccess }) => {
       setError("");
       setMessage("");
 
-      await api.put("/profile/mobile", { phone });
+      if (!/^\d{10}$/.test(phone)) {
+        setError("Please enter a valid 10-digit mobile number");
+        alert("Please enter a valid 10-digit mobile number");
+        return;
+      }
 
       alert("Mobile number updated successfully");
 
@@ -134,13 +145,33 @@ const EditProfile = ({ onSuccess }) => {
         <form className="auth-form" onSubmit={updateMobile}>
           <div className="input-group">
             <label>Mobile Number</label>
-            <input
-              type="text"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="+919876543210"
-              required
-            />
+
+            <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+              <span
+                style={{
+                  padding: "12px",
+                  border: "1px solid #ddd",
+                  borderRadius: "8px",
+                  background: "#f5f5f5",
+                }}
+              >
+                +91
+              </span>
+
+              <input
+                type="text"
+                value={phone}
+                onChange={(e) => {
+                  const onlyNumbers = e.target.value.replace(/\D/g, "");
+                  if (onlyNumbers.length <= 10) {
+                    setPhone(onlyNumbers);
+                  }
+                }}
+                placeholder="9876543210"
+                maxLength={10}
+                required
+              />
+            </div>
           </div>
 
           <button className="btn btn-primary" type="submit">

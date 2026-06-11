@@ -31,7 +31,7 @@ const AdminLeaveReports = () => {
     } catch (error) {
       alert(
         error.response?.data?.message ||
-          "Unable to fetch leave reports"
+        "Unable to fetch leave reports"
       );
     }
   };
@@ -45,7 +45,7 @@ const AdminLeaveReports = () => {
       const matchesFilter =
         activeFilter === "All"
           ? true
-          : item.status === activeFilter;
+          : item.finalStatus === activeFilter;
 
       const search =
         searchTerm.toLowerCase();
@@ -70,7 +70,7 @@ const AdminLeaveReports = () => {
   const totalPages =
     Math.ceil(
       filteredRequests.length /
-        REPORTS_PER_PAGE
+      REPORTS_PER_PAGE
     ) || 1;
 
   const startIndex =
@@ -85,6 +85,7 @@ const AdminLeaveReports = () => {
 
   const exportToExcel = () => {
     const exportData =
+
       filteredRequests.map((item) => ({
         Employee:
           item.employeeId?.name ||
@@ -107,15 +108,11 @@ const AdminLeaveReports = () => {
         EndDate: new Date(
           item.endDate
         ).toLocaleDateString(),
+        HRStatus: item.hrStatus,
+        FinalStatus: item.finalStatus,
+        TLStatus: item.tlStatus,
+        ManagerStatus: item.managerStatus,
 
-        Status: item.status,
-
-        ManagerApproval:
-          item.approvals
-            ?.managerStatus,
-
-        HRApproval:
-          item.approvals?.hrStatus,
       }));
 
     const worksheet =
@@ -204,9 +201,11 @@ const AdminLeaveReports = () => {
       <div className="leave-filter-tabs">
         {[
           "All",
-          "Pending",
-          "Approved",
-          "Rejected",
+          "Pending Final Approval",
+          "Approved by Manager",
+          "Approved by HR",
+          "Rejected by Manager",
+          "Rejected by HR",
         ].map((filter) => (
           <button
             key={filter}
@@ -238,6 +237,7 @@ const AdminLeaveReports = () => {
               <th>Duration</th>
               <th>Status</th>
               <th>Approval Flow</th>
+              <th>Rejection Reason</th>
             </tr>
           </thead>
 
@@ -300,65 +300,39 @@ const AdminLeaveReports = () => {
                   <td>
                     <span
                       className={
-                        item.status ===
-                        "Approved"
+                        [
+                          "Approved by Manager",
+                          "Approved by HR",
+                        ].includes(item.finalStatus)
                           ? "badge badge-success"
-                          : item.status ===
+                          : item.finalStatus?.includes(
                             "Rejected"
-                          ? "badge badge-danger"
-                          : "badge badge-pending"
+                          )
+                            ? "badge badge-danger"
+                            : "badge badge-pending"
                       }
                     >
-                      {item.status}
+                      {item.finalStatus}
                     </span>
                   </td>
 
                   <td>
                     <div className="approval-flow">
-                      <span
-                        className={
-                          item
-                            .approvals
-                            ?.managerStatus ===
-                          "Approved"
-                            ? "approval-approved"
-                            : item
-                                .approvals
-                                ?.managerStatus ===
-                              "Rejected"
-                            ? "approval-rejected"
-                            : "approval-pending"
-                        }
-                      >
-                        Manager:{" "}
-                        {item
-                          .approvals
-                          ?.managerStatus ||
-                          "Pending"}
+                      <span>
+                        TL: {item.tlStatus}
                       </span>
 
-                      <span
-                        className={
-                          item
-                            .approvals
-                            ?.hrStatus ===
-                          "Approved"
-                            ? "approval-approved"
-                            : item
-                                .approvals
-                                ?.hrStatus ===
-                              "Rejected"
-                            ? "approval-rejected"
-                            : "approval-pending"
-                        }
-                      >
-                        HR:{" "}
-                        {item
-                          .approvals
-                          ?.hrStatus ||
-                          "Pending"}
+                      <span>
+                        Manager: {item.managerStatus}
+                      </span>
+
+                      <span>
+                        HR: {item.hrStatus}
                       </span>
                     </div>
+                  </td>
+                  <td>
+                    {item.rejectionReason || "-"}
                   </td>
                 </tr>
               )
@@ -366,94 +340,94 @@ const AdminLeaveReports = () => {
 
             {filteredRequests.length ===
               0 && (
-              <tr>
-                <td
-                  colSpan="6"
-                  style={{
-                    textAlign:
-                      "center",
-                    padding:
-                      "24px",
-                  }}
-                >
-                  No leave reports
-                  found.
-                </td>
-              </tr>
-            )}
+                <tr>
+                  <td
+                    colSpan="7"
+                    style={{
+                      textAlign:
+                        "center",
+                      padding:
+                        "24px",
+                    }}
+                  >
+                    No leave reports
+                    found.
+                  </td>
+                </tr>
+              )}
           </tbody>
         </table>
       </div>
 
       {filteredRequests.length >
         REPORTS_PER_PAGE && (
-        <div
-          style={{
-            display: "flex",
-            justifyContent:
-              "center",
-            alignItems: "center",
-            gap: "10px",
-            marginTop: "24px",
-            flexWrap: "wrap",
-          }}
-        >
-          <button
-            className="btn btn-primary"
-            disabled={
-              currentPage === 1
-            }
-            onClick={() =>
-              setCurrentPage(
-                (prev) =>
-                  prev - 1
-              )
-            }
+          <div
+            style={{
+              display: "flex",
+              justifyContent:
+                "center",
+              alignItems: "center",
+              gap: "10px",
+              marginTop: "24px",
+              flexWrap: "wrap",
+            }}
           >
-            Previous
-          </button>
+            <button
+              className="btn btn-primary"
+              disabled={
+                currentPage === 1
+              }
+              onClick={() =>
+                setCurrentPage(
+                  (prev) =>
+                    prev - 1
+                )
+              }
+            >
+              Previous
+            </button>
 
-          {Array.from(
-            {
-              length: totalPages,
-            },
-            (_, index) => (
-              <button
-                key={index + 1}
-                className={
-                  currentPage ===
-                  index + 1
-                    ? "btn btn-primary"
-                    : "btn"
-                }
-                onClick={() =>
-                  setCurrentPage(
-                    index + 1
-                  )
-                }
-              >
-                {index + 1}
-              </button>
-            )
-          )}
-
-          <button
-            className="btn btn-primary"
-            disabled={
-              currentPage ===
-              totalPages
-            }
-            onClick={() =>
-              setCurrentPage(
-                (prev) =>
-                  prev + 1
+            {Array.from(
+              {
+                length: totalPages,
+              },
+              (_, index) => (
+                <button
+                  key={index + 1}
+                  className={
+                    currentPage ===
+                      index + 1
+                      ? "btn btn-primary"
+                      : "btn"
+                  }
+                  onClick={() =>
+                    setCurrentPage(
+                      index + 1
+                    )
+                  }
+                >
+                  {index + 1}
+                </button>
               )
-            }
-          >
-            Next
-          </button>
-        </div>
-      )}
+            )}
+
+            <button
+              className="btn btn-primary"
+              disabled={
+                currentPage ===
+                totalPages
+              }
+              onClick={() =>
+                setCurrentPage(
+                  (prev) =>
+                    prev + 1
+                )
+              }
+            >
+              Next
+            </button>
+          </div>
+        )}
     </>
   );
 };

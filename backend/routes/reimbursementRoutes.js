@@ -3,9 +3,16 @@ import express from "express";
 import {
   createReimbursementRequest,
   getMyReimbursementRequests,
-  getPendingReimbursementRequests,
+
+  getPendingTLReimbursements,
+  approveReimbursementByTL,
+  rejectReimbursementByTL,
+
+  getPendingManagerReimbursements,
+  approveReimbursementByManager,
+  rejectReimbursementByManager,
+
   getFinanceReimbursements,
-  approveReimbursementRequest,
   markReimbursementAsPaid,
 } from "../controllers/reimbursementController.js";
 
@@ -21,13 +28,60 @@ router.post(
   createReimbursementRequest
 );
 
-router.get("/my-requests", protect, getMyReimbursementRequests);
+router.get(
+  "/my-requests",
+  protect,
+  getMyReimbursementRequests
+);
 
-router.get("/pending", protect, getPendingReimbursementRequests);
+/* TL */
 
-router.get("/finance", protect, getFinanceReimbursements);
+router.get(
+  "/tl-pending",
+  protect,
+  getPendingTLReimbursements
+);
 
-router.put("/approve/:id", protect, approveReimbursementRequest);
+router.put(
+  "/tl-approve/:id",
+  protect,
+  approveReimbursementByTL
+);
+
+router.put(
+  "/tl-reject/:id",
+  protect,
+  rejectReimbursementByTL
+);
+
+/* Manager / HR */
+
+router.get(
+  "/manager-pending",
+  protect,
+  getPendingManagerReimbursements
+);
+
+router.put(
+  "/manager-approve/:id",
+  protect,
+  approveReimbursementByManager
+);
+
+router.put(
+  "/manager-reject/:id",
+  protect,
+  rejectReimbursementByManager
+);
+
+/* Finance */
+
+router.get(
+  "/finance",
+  protect,
+  getFinanceReimbursements
+);
+
 router.put(
   "/mark-paid/:id",
   protect,

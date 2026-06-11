@@ -28,6 +28,10 @@ const Login = () => {
 
     try {
       await login(formData.email, formData.password);
+
+      localStorage.removeItem("activePage");
+      localStorage.setItem("activePage", "dashboard");
+
       navigate("/dashboard");
     } catch (err) {
       setError(err.response?.data?.message || "Login failed");

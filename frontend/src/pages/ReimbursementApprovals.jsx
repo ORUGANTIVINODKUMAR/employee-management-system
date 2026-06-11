@@ -46,19 +46,22 @@ const ReimbursementApprovals = () => {
 
   const fetchRequests = async () => {
     try {
-      const { data } = await api.get(
-        "/reimbursements/pending"
-      );
+      const endpoint =
+        user?.role === "TeamLeader"
+          ? "/reimbursements/tl-pending"
+          : "/reimbursements/manager-pending";
+
+      const { data } = await api.get(endpoint);
 
       setRequests(
         data.reimbursementRequests ||
-          data.reimbursements ||
-          []
+        data.reimbursements ||
+        []
       );
     } catch (error) {
       alert(
         error.response?.data?.message ||
-          "Unable to fetch reimbursement approvals"
+        "Unable to fetch reimbursement approvals"
       );
     }
   };
@@ -72,8 +75,8 @@ const ReimbursementApprovals = () => {
       const matchesFilter =
         activeFilter === "All"
           ? true
-          : item.status ===
-            activeFilter;
+          : item.finalStatus ===
+          activeFilter;
 
       const search =
         searchTerm.toLowerCase();
@@ -98,7 +101,7 @@ const ReimbursementApprovals = () => {
   const totalPages =
     Math.ceil(
       filteredRequests.length /
-        REQUESTS_PER_PAGE
+      REQUESTS_PER_PAGE
     ) || 1;
 
   const startIndex =
@@ -109,25 +112,27 @@ const ReimbursementApprovals = () => {
     filteredRequests.slice(
       startIndex,
       startIndex +
-        REQUESTS_PER_PAGE
+      REQUESTS_PER_PAGE
     );
 
   const pendingCount =
     safeRequests.filter(
       (item) =>
-        item.status === "Pending"
+        item.finalStatus === "Pending Final Approval"
     ).length;
 
   const approvedCount =
     safeRequests.filter(
       (item) =>
-        item.status === "Approved"
+        ["Approved by Manager", "Approved by HR"].includes(
+          item.finalStatus
+        )
     ).length;
 
   const rejectedCount =
     safeRequests.filter(
       (item) =>
-        item.status === "Rejected"
+        item.finalStatus?.includes("Rejected")
     ).length;
 
   const totalAmount =
@@ -148,7 +153,7 @@ const ReimbursementApprovals = () => {
 
     setModalContent(
       content ||
-        "No reason available."
+      "No reason available."
     );
 
     setShowReasonModal(true);
@@ -168,46 +173,34 @@ const ReimbursementApprovals = () => {
     customReason = ""
   ) => {
     try {
-      if (
-        decision === "Rejected" &&
-        !customReason.trim()
-      ) {
-        alert(
-          "Rejection reason is required."
-        );
-
+      if (decision === "Rejected" && !customReason.trim()) {
+        alert("Rejection reason is required.");
         return;
       }
 
-      const { data } =
-        await api.put(
-          `/reimbursements/approve/${id}`,
-          {
-            decision,
-            rejectionReason:
-              customReason,
-          }
-        );
+      const approveEndpoint =
+        user?.role === "TeamLeader"
+          ? `/reimbursements/tl-approve/${id}`
+          : `/reimbursements/manager-approve/${id}`;
 
-      const updatedRequest =
-        data.reimbursementRequest ||
-        data.reimbursement ||
-        {};
+      const rejectEndpoint =
+        user?.role === "TeamLeader"
+          ? `/reimbursements/tl-reject/${id}`
+          : `/reimbursements/manager-reject/${id}`;
 
-      alert(
-        updatedRequest.status ===
-          "Pending"
-          ? "Your approval is recorded. Waiting for the other approver."
-          : `Reimbursement ${updatedRequest.status}`
-      );
+      if (decision === "Approved") {
+        await api.put(approveEndpoint);
+      } else {
+        await api.put(rejectEndpoint, {
+          rejectionReason: customReason,
+        });
+      }
+
+      alert(`Reimbursement ${decision.toLowerCase()} successfully`);
 
       fetchRequests();
     } catch (error) {
-      alert(
-        error.response?.data
-          ?.message ||
-          "Approval failed"
-      );
+      alert(error.response?.data?.message || "Approval failed");
     }
   };
 
@@ -236,83 +229,7 @@ const ReimbursementApprovals = () => {
       setRejectionReason("");
     };
 
-  const hasCurrentUserActed = (
-    item
-  ) => {
-    if (
-      user?.role === "Manager"
-    ) {
-      return (
-        item.approvals
-          ?.managerStatus !==
-        "Pending"
-      );
-    }
 
-    if (user?.role === "HR") {
-      return (
-        item.approvals
-          ?.hrStatus !==
-        "Pending"
-      );
-    }
-
-    return true;
-  };
-
-  const getActionLabel = (
-    item
-  ) => {
-    if (
-      user?.role ===
-      "Manager"
-    ) {
-      return item.approvals
-        ?.managerStatus ===
-        "Approved"
-        ? "Approved By You"
-        : "Rejected By You";
-    }
-
-    if (
-      user?.role === "HR"
-    ) {
-      return item.approvals
-        ?.hrStatus ===
-        "Approved"
-        ? "Approved By You"
-        : "Rejected By You";
-    }
-
-    return "";
-  };
-
-  const getActionClass = (
-    item
-  ) => {
-    if (
-      user?.role ===
-      "Manager"
-    ) {
-      return item.approvals
-        ?.managerStatus ===
-        "Approved"
-        ? "badge badge-success"
-        : "badge badge-danger";
-    }
-
-    if (
-      user?.role === "HR"
-    ) {
-      return item.approvals
-        ?.hrStatus ===
-        "Approved"
-        ? "badge badge-success"
-        : "badge badge-danger";
-    }
-
-    return "badge badge-pending";
-  };
 
   const printReimbursementForm = (
     item
@@ -400,15 +317,17 @@ const ReimbursementApprovals = () => {
       <div className="leave-filter-tabs">
         {[
           "All",
-          "Pending",
-          "Approved",
-          "Rejected",
+          "Pending Final Approval",
+          "Approved by Manager",
+          "Approved by HR",
+          "Rejected by Manager",
+          "Rejected by HR",
         ].map((filter) => (
           <button
             key={filter}
             className={
               activeFilter ===
-              filter
+                filter
                 ? "active-filter"
                 : ""
             }
@@ -537,133 +456,75 @@ const ReimbursementApprovals = () => {
                   <td>
                     <span
                       className={
-                        item.status ===
-                        "Approved"
+                        [
+                          "Approved by Manager",
+                          "Approved by HR",
+                          "Paid by Finance",
+                        ].includes(item.finalStatus)
                           ? "badge badge-success"
-                          : item.status ===
-                            "Rejected"
-                          ? "badge badge-danger"
-                          : "badge badge-pending"
+                          : item.finalStatus?.includes("Rejected")
+                            ? "badge badge-danger"
+                            : "badge badge-pending"
                       }
                     >
-                      {item.status}
+                      {item.finalStatus}
                     </span>
                   </td>
 
                   <td>
-                    <div className="action-buttons">
-                      {hasCurrentUserActed(
-                        item
-                      ) ? (
-                        <span
-                          className={getActionClass(
-                            item
-                          )}
+                    {item.finalStatus === "Pending Final Approval" ? (
+                      <div className="action-buttons">
+                        <button
+                          className="approve-btn"
+                          onClick={() =>
+                            handleDecision(item._id, "Approved")
+                          }
                         >
-                          {getActionLabel(
-                            item
-                          )}
-                        </span>
-                      ) : (
-                        <>
-                          <button
-                            className="approve-btn"
-                            onClick={() =>
-                              handleDecision(
-                                item._id,
-                                "Approved"
-                              )
-                            }
-                          >
-                            <CheckCircle
-                              size={16}
-                            />
-                            Approve
-                          </button>
+                          <CheckCircle size={16} />
+                          Approve
+                        </button>
 
-                          <button
-                            className="reject-btn"
-                            onClick={() =>
-                              openRejectModal(
-                                item._id
-                              )
-                            }
-                          >
-                            <XCircle
-                              size={16}
-                            />
-                            Reject
-                          </button>
-                        </>
-                      )}
-                    </div>
+                        <button
+                          className="reject-btn"
+                          onClick={() =>
+                            openRejectModal(item._id)
+                          }
+                        >
+                          <XCircle size={16} />
+                          Reject
+                        </button>
+                      </div>
+                    ) : (
+                      <span>Finalized</span>
+                    )}
                   </td>
 
                   <td>
                     {["Manager", "HR"].includes(
                       user?.role
                     ) && (
-                      <button
-                        className="print-btn"
-                        onClick={() =>
-                          printReimbursementForm(
-                            item
-                          )
-                        }
-                      >
-                        <Printer
-                          size={16}
-                        />
-                        Print
-                      </button>
-                    )}
+                        <button
+                          className="print-btn"
+                          onClick={() =>
+                            printReimbursementForm(
+                              item
+                            )
+                          }
+                        >
+                          <Printer
+                            size={16}
+                          />
+                          Print
+                        </button>
+                      )}
                   </td>
 
                   <td>
                     <div className="approval-flow">
-                      <span
-                        className={
-                          item
-                            .approvals
-                            ?.managerStatus ===
-                          "Approved"
-                            ? "approval-approved"
-                            : item
-                                .approvals
-                                ?.managerStatus ===
-                              "Rejected"
-                            ? "approval-rejected"
-                            : "approval-pending"
-                        }
-                      >
-                        Manager:{" "}
-                        {item
-                          .approvals
-                          ?.managerStatus ||
-                          "Pending"}
-                      </span>
-
-                      <span
-                        className={
-                          item
-                            .approvals
-                            ?.hrStatus ===
-                          "Approved"
-                            ? "approval-approved"
-                            : item
-                                .approvals
-                                ?.hrStatus ===
-                              "Rejected"
-                            ? "approval-rejected"
-                            : "approval-pending"
-                        }
-                      >
-                        HR:{" "}
-                        {item
-                          .approvals
-                          ?.hrStatus ||
-                          "Pending"}
-                      </span>
+                      <span>TL: {item.tlStatus || "Pending"}</span>
+                      <span>Manager: {item.managerStatus || "Pending"}</span>
+                      <span>HR: {item.hrStatus || "Pending"}</span>
+                      <span>Finance: {item.financeStatus || "Not Routed"}</span>
                     </div>
                   </td>
 
@@ -690,91 +551,128 @@ const ReimbursementApprovals = () => {
 
             {filteredRequests.length ===
               0 && (
-              <tr>
-                <td
-                  colSpan="9"
-                  style={{
-                    textAlign:
-                      "center",
-                    padding:
-                      "24px",
-                  }}
-                >
-                  No reimbursement requests found.
-                </td>
-              </tr>
-            )}
+                <tr>
+                  <td
+                    colSpan="9"
+                    style={{
+                      textAlign:
+                        "center",
+                      padding:
+                        "24px",
+                    }}
+                  >
+                    No reimbursement requests found.
+                  </td>
+                </tr>
+              )}
           </tbody>
         </table>
       </div>
 
       {filteredRequests.length >
         REQUESTS_PER_PAGE && (
-        <div
-          style={{
-            display: "flex",
-            justifyContent:
-              "center",
-            alignItems: "center",
-            gap: "10px",
-            marginTop: "24px",
-            flexWrap: "wrap",
-          }}
-        >
-          <button
-            className="btn btn-primary"
-            disabled={
-              currentPage === 1
-            }
-            onClick={() =>
-              setCurrentPage(
-                (prev) =>
-                  prev - 1
-              )
-            }
+          <div
+            style={{
+              display: "flex",
+              justifyContent:
+                "center",
+              alignItems: "center",
+              gap: "10px",
+              marginTop: "24px",
+              flexWrap: "wrap",
+            }}
           >
-            Previous
-          </button>
+            <button
+              className="btn btn-primary"
+              disabled={
+                currentPage === 1
+              }
+              onClick={() =>
+                setCurrentPage(
+                  (prev) =>
+                    prev - 1
+                )
+              }
+            >
+              Previous
+            </button>
 
-          {Array.from(
-            {
-              length: totalPages,
-            },
-            (_, index) => (
-              <button
-                key={index + 1}
-                className={
-                  currentPage ===
-                  index + 1
-                    ? "btn btn-primary"
-                    : "btn"
-                }
-                onClick={() =>
-                  setCurrentPage(
-                    index + 1
-                  )
-                }
-              >
-                {index + 1}
+            {Array.from(
+              {
+                length: totalPages,
+              },
+              (_, index) => (
+                <button
+                  key={index + 1}
+                  className={
+                    currentPage ===
+                      index + 1
+                      ? "btn btn-primary"
+                      : "btn"
+                  }
+                  onClick={() =>
+                    setCurrentPage(
+                      index + 1
+                    )
+                  }
+                >
+                  {index + 1}
+                </button>
+              )
+            )}
+
+            <button
+              className="btn btn-primary"
+              disabled={
+                currentPage ===
+                totalPages
+              }
+              onClick={() =>
+                setCurrentPage(
+                  (prev) =>
+                    prev + 1
+                )
+              }
+            >
+              Next
+            </button>
+          </div>
+        )}
+      {rejectionModal && (
+        <div className="modal-overlay">
+          <div
+            className="modal-card"
+            style={{
+              maxWidth: "600px",
+              width: "90%",
+            }}
+          >
+            <div className="modal-header">
+              <h3>Reject Reimbursement</h3>
+
+              <button onClick={() => setRejectionModal(false)}>
+                ✕
               </button>
-            )
-          )}
+            </div>
 
-          <button
-            className="btn btn-primary"
-            disabled={
-              currentPage ===
-              totalPages
-            }
-            onClick={() =>
-              setCurrentPage(
-                (prev) =>
-                  prev + 1
-              )
-            }
-          >
-            Next
-          </button>
+            <div style={{ padding: "20px" }}>
+              <textarea
+                rows="4"
+                placeholder="Enter rejection reason"
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                style={{ width: "100%" }}
+              />
+
+              <button
+                className="reject-btn"
+                style={{ marginTop: "16px" }}
+                onClick={submitRejection}
+              >
+                Submit Rejection
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </>

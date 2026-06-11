@@ -3,9 +3,16 @@ import express from "express";
 import {
   createLeaveRequest,
   getMyLeaveRequests,
-  getPendingLeaveRequests,
+
+  getPendingTLRequests,
+  approveLeaveByTL,
+  rejectLeaveByTL,
+  getManagerApprovalHistory,
+  getPendingManagerRequests,
+  approveLeaveByManager,
+  rejectLeaveByManager,
+
   getFinanceLeaves,
-  approveLeaveRequest,
   getApprovedLeaveCalendar,
   getTodayLeaves,
 } from "../controllers/leaveController.js";
@@ -15,15 +22,66 @@ import upload from "../middleware/uploadMiddleware.js";
 
 const router = express.Router();
 
-router.post("/request", protect, upload.single("proofFile"), createLeaveRequest);
+router.post(
+  "/request",
+  protect,
+  upload.single("proofFile"),
+  createLeaveRequest
+);
 
-router.get("/my-requests", protect, getMyLeaveRequests);
+router.get(
+  "/my-requests",
+  protect,
+  getMyLeaveRequests
+);
 
-router.get("/pending", protect, getPendingLeaveRequests);
+/* Team Leader Approval Routes */
+router.get(
+  "/tl-pending",
+  protect,
+  getPendingTLRequests
+);
 
-router.get("/finance", protect, getFinanceLeaves);
+router.put(
+  "/tl-approve/:id",
+  protect,
+  approveLeaveByTL
+);
 
-router.put("/approve/:id", protect, approveLeaveRequest);
+router.put(
+  "/tl-reject/:id",
+  protect,
+  rejectLeaveByTL
+);
+router.get(
+  "/manager-history",
+  protect,
+  getManagerApprovalHistory
+);
+/* Manager / HR Final Approval Routes */
+router.get(
+  "/manager-pending",
+  protect,
+  getPendingManagerRequests
+);
+
+router.put(
+  "/manager-approve/:id",
+  protect,
+  approveLeaveByManager
+);
+
+router.put(
+  "/manager-reject/:id",
+  protect,
+  rejectLeaveByManager
+);
+
+router.get(
+  "/finance",
+  protect,
+  getFinanceLeaves
+);
 
 router.get(
   "/calendar",

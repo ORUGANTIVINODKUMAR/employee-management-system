@@ -12,7 +12,6 @@ import {
   Clock,
 } from "lucide-react";
 
-
 import logo from "../assets/logo.png";
 import { useAuth } from "../context/AuthContext";
 import api from "../api/api";
@@ -29,67 +28,52 @@ import Reimbursements from "./Reimbursements";
 import ReimbursementApprovals from "./ReimbursementApprovals";
 import SignatureUploader from "../components/SignatureUploader";
 import Notifications from "./Notifications";
-import Attendance from "./Attendance";
 import HolidayManagement from "./HolidayManagement";
-import AdminAttendanceReports from "./AdminAttendanceReports";
 import EditProfile from "./EditProfile";
-
+import AdminTeams from "./AdminTeams";
+import TLApprovals from "./TLApprovals";
+import ManagerApprovals from "./ManagerApprovals";
 const Dashboard = () => {
-  const { user, logout } = useAuth();
-  const [activePage, setActivePage] = useState("dashboard");
+  const { user, logout, updateUser } = useAuth();
+  const [activePage, setActivePage] = useState(
+    localStorage.getItem("activePage") || "dashboard"
+  );
+
   const [stats, setStats] = useState({});
   const [showNotifications, setShowNotifications] = useState(false);
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [notifications, setNotifications] = useState([]);
+
+  const [showPasswordModal, setShowPasswordModal] =
+    useState(false);
+
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+
   const isAdmin = user?.role === "Admin";
   const isEmployee = user?.role === "Employee";
-  const isManagerOrHR = ["Manager", "HR"].includes(user?.role);
+
+  const isManagerOrHR =
+    ["Manager", "HR"].includes(user?.role);
+
+  const isTeamLeader =
+    user?.role === "TeamLeader";
   const isFinance = user?.role === "Finance";
-  const COLORS = ["#2563eb", "#16a34a", "#f59e0b", "#dc2626"];
 
-  const adminUserChartData = [
-    {
-      name: "Employees",
-      value: stats.totalEmployees || 0,
-    },
-    {
-      name: "Departments",
-      value: stats.departments || 0,
-    },
-  ];
+  useEffect(() => {
+    if (
+      user?.role === "Employee" &&
+      user?.mustChangePassword
+    ) {
+      setShowPasswordModal(true);
+    } else {
+      setShowPasswordModal(false);
+    }
+  }, [user]);
 
-  const approvalChartData = [
-    {
-      name: "Pending Leaves",
-      value: stats.pendingLeaves || 0,
-    },
-    {
-      name: "Pending Claims",
-      value: stats.pendingReimbursements || 0,
-    },
-  ];
-
-  const financeChartData = [
-    {
-      name: "Approved Leaves",
-      value: stats.approvedLeaves || 0,
-    },
-    {
-      name: "Approved Claims",
-      value: stats.approvedReimbursements || 0,
-    },
-  ];
-
-  const employeeChartData = [
-    {
-      name: "Leaves",
-      value: stats.myLeaves || 0,
-    },
-    {
-      name: "Claims",
-      value: stats.myReimbursements || 0,
-    },
-  ];
   useEffect(() => {
     const fetchStats = async () => {
       try {
@@ -110,6 +94,9 @@ const Dashboard = () => {
     };
 
     fetchStats();
+    const interval = setInterval(fetchStats, 30000);
+
+    return () => clearInterval(interval);
   }, []);
 
   const menuButton = (key, icon, label) => (
@@ -121,6 +108,37 @@ const Dashboard = () => {
       {label}
     </button>
   );
+
+  const handlePasswordChange = async () => {
+    try {
+      if (
+        passwordData.newPassword !==
+        passwordData.confirmPassword
+      ) {
+        alert("Passwords do not match");
+        return;
+      }
+
+      await api.put("/auth/change-password", {
+        currentPassword: passwordData.currentPassword,
+        newPassword: passwordData.newPassword,
+      });
+
+      updateUser({
+        ...user,
+        mustChangePassword: false,
+      });
+
+      setShowPasswordModal(false);
+
+      alert("Password updated successfully");
+    } catch (error) {
+      alert(
+        error.response?.data?.message ||
+        "Unable to update password"
+      );
+    }
+  };
 
   return (
     <div className="dashboard-layout portal-redesign">
@@ -153,7 +171,9 @@ const Dashboard = () => {
             {isAdmin && (
               <>
                 {menuButton("departments", <Building2 size={18} />, "Departments")}
+                {menuButton("teams", <Users size={18} />, "Teams")}
                 {menuButton("users", <Users size={18} />, "User Management")}
+
                 {menuButton(
                   "leaveReports",
                   <CalendarCheck size={18} />,
@@ -173,17 +193,26 @@ const Dashboard = () => {
 
             {isEmployee &&
               menuButton("reimbursements", <Receipt size={18} />, "Reimbursements")}
-            {isEmployee &&
-              menuButton("attendance", <CalendarCheck size={18} />, "Attendance")}
 
-            {isManagerOrHR &&
-              menuButton("approvals", <CalendarCheck size={18} />, "Leave Approvals")}
-            {(isManagerOrHR || isFinance || isAdmin) &&
+            {isTeamLeader &&
               menuButton(
-                "attendanceReports",
-                <Clock size={18} />,
-                "Attendance Reports"
+                "tlApprovals",
+                <CalendarCheck size={18} />,
+                "TL Leave Approvals"
               )}
+            {isTeamLeader &&
+              menuButton(
+                "reimbursementApprovals",
+                <Receipt size={18} />,
+                "TL Reimbursement Approvals"
+              )}
+            {isManagerOrHR &&
+              menuButton(
+                "managerApprovals",
+                <CalendarCheck size={18} />,
+                "Final Leave Approvals"
+              )}
+
             {isManagerOrHR &&
               menuButton(
                 "reimbursementApprovals",
@@ -240,7 +269,9 @@ const Dashboard = () => {
                 ? "ADMIN"
                 : isFinance
                   ? "FINANCE"
-                  : "APPROVALS"}
+                  : isTeamLeader
+                    ? "TEAM LEADER"
+                    : "APPROVALS"}
           </span>
 
           <h1>
@@ -316,6 +347,168 @@ const Dashboard = () => {
 
         {activePage === "dashboard" && (
           <>
+
+
+
+
+            <div
+              className="modern-section-card"
+              style={{
+                background: stats.tomorrowHoliday
+                  ? "linear-gradient(135deg, #fff7ed, #ffffff)"
+                  : "linear-gradient(135deg, #ecfdf5, #ffffff)",
+                border: stats.tomorrowHoliday
+                  ? "1px solid #fed7aa"
+                  : "1px solid #bbf7d0",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: "16px",
+                }}
+              >
+                <div>
+                  <span className="eyebrow">
+                    {stats.tomorrowHoliday ? "HOLIDAY ALERT" : "UPCOMING HOLIDAYS"}
+                  </span>
+
+                  <h3 style={{ marginTop: "6px" }}>
+                    {stats.tomorrowHoliday
+                      ? `Tomorrow is ${stats.tomorrowHoliday.name}`
+                      : "Next Holidays"}
+                  </h3>
+
+                  {stats.tomorrowHoliday ? (
+                    <>
+                      <p style={{ marginTop: "8px" }}>
+                        📅{" "}
+                        {new Date(
+                          stats.tomorrowHoliday.holidayDate
+                        ).toLocaleDateString()}{" "}
+                        • {stats.tomorrowHoliday.type}
+                      </p>
+
+                      <p style={{ color: "#92400e", fontWeight: "600" }}>
+                        Office closed / holiday configured.
+                      </p>
+                    </>
+                  ) : (
+                    <div style={{ marginTop: "12px" }}>
+                      {stats.upcomingHolidays?.length > 0 ? (
+                        stats.upcomingHolidays.map((holiday) => (
+                          <div
+                            key={holiday._id}
+                            style={{
+                              padding: "10px 0",
+                              borderBottom: "1px solid #e5e7eb",
+                            }}
+                          >
+                            <strong>{holiday.name}</strong>
+                            <p style={{ margin: 0 }}>
+                              📅 {new Date(holiday.holidayDate).toLocaleDateString()} •{" "}
+                              {holiday.type}
+                            </p>
+                          </div>
+                        ))
+                      ) : (
+                        <p>No upcoming holidays.</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div
+                  style={{
+                    fontSize: "42px",
+                    width: "72px",
+                    height: "72px",
+                    borderRadius: "20px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    background: stats.tomorrowHoliday ? "#ffedd5" : "#dcfce7",
+                  }}
+                >
+                  {stats.tomorrowHoliday ? "🎉" : "📅"}
+                </div>
+              </div>
+            </div>
+
+
+            {["Admin", "HR", "Manager", "TeamLeader"].includes(user?.role) && (
+              <div className="modern-section-card">
+                <h3>Employees On Leave Today</h3>
+
+                {stats.todayLeaves?.length > 0 ? (
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "12px",
+                      marginTop: "15px",
+                    }}
+                  >
+                    {stats.todayLeaves.map((leave) => (
+                      <div
+                        key={leave._id}
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          padding: "16px",
+                          border: "1px solid #e5e7eb",
+                          borderRadius: "12px",
+                          marginBottom: "12px",
+                          background: "#ffffff",
+                        }}
+                      >
+                        <div>
+                          <h4
+                            style={{
+                              margin: 0,
+                              fontSize: "16px",
+                              fontWeight: "600",
+                            }}
+                          >
+                            👤 {leave.employeeId?.name}
+                          </h4>
+
+                          <p style={{ margin: "4px 0", color: "#6b7280" }}>
+                            🏢 {leave.subcategoryId?.name || "N/A"}
+                          </p>
+
+                          <p style={{ margin: 0, color: "#6b7280" }}>
+                            📅{" "}
+                            {new Date(leave.startDate).toLocaleDateString()} -{" "}
+                            {new Date(leave.endDate).toLocaleDateString()}
+                          </p>
+                        </div>
+
+                        <div
+                          style={{
+                            padding: "8px 14px",
+                            borderRadius: "20px",
+                            background: "#ecfdf5",
+                            color: "#166534",
+                            fontWeight: "600",
+                            fontSize: "13px",
+                          }}
+                        >
+                          {leave.leaveType}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p style={{ marginTop: "15px" }}>
+                    No employees are on leave today.
+                  </p>
+                )}
+              </div>
+            )}
             {isEmployee && (
               <>
                 <div className="employee-dashboard-grid">
@@ -451,7 +644,23 @@ const Dashboard = () => {
                     <h3>{stats.myLeaves || 0}</h3>
                     <p>lifetime</p>
                   </div>
+                  <div className="mini-stat-card">
+                    <CalendarCheck size={23} />
+                    <span>Pending Leaves</span>
+                    <h3>{stats.myPendingLeaves || 0}</h3>
+                  </div>
 
+                  <div className="mini-stat-card">
+                    <BadgeCheck size={23} />
+                    <span>Approved Leaves</span>
+                    <h3>{stats.myApprovedLeaves || 0}</h3>
+                  </div>
+
+                  <div className="mini-stat-card">
+                    <Receipt size={23} />
+                    <span>Rejected Leaves</span>
+                    <h3>{stats.myRejectedLeaves || 0}</h3>
+                  </div>
                   <div className="mini-stat-card">
                     <Receipt size={23} />
                     <span>Claims Submitted</span>
@@ -465,7 +674,12 @@ const Dashboard = () => {
                     <h3>₹0</h3>
                     <p>awaiting review</p>
                   </div>
-
+                  <div className="mini-stat-card">
+                    <Receipt size={23} />
+                    <span>Pending Reimbursements</span>
+                    <h3>{stats.pendingManagerReimbursements || 0}</h3>
+                    <p>awaiting your approval</p>
+                  </div>
 
                 </div>
                 <div className="modern-section-card">
@@ -600,37 +814,84 @@ const Dashboard = () => {
                 <div className="modern-stats-grid">
                   <div className="mini-stat-card">
                     <Users size={23} />
-                    <span>Total Employees</span>
-                    <h3>{stats.totalEmployees || 0}</h3>
-                    <p>team members</p>
+                    <span>
+                      {user?.role === "HR"
+                        ? "Total Employees"
+                        : "My Team Members"}
+                    </span>
+
+                    <h3>
+                      {user?.role === "HR"
+                        ? stats.totalEmployees || 0
+                        : stats.managerTeamCount || 0}
+                    </h3>
+                    <p>{user?.role === "HR" ? "company users" : "team members"}</p>
                   </div>
 
                   <div className="mini-stat-card">
                     <CalendarCheck size={23} />
-                    <span>Leave Approvals</span>
-                    <h3>{stats.pendingLeaves || 0}</h3>
-                    <p>pending</p>
+                    <span>
+                      {user?.role === "HR"
+                        ? "Pending HR Leave Approvals"
+                        : "Pending Manager Leaves"}
+                    </span>
+                    <h3>{stats.pendingManagerLeaves || 0}</h3>
+                    <p>awaiting your approval</p>
                   </div>
 
                   <div className="mini-stat-card">
                     <Receipt size={23} />
-                    <span>Reimbursement Approvals</span>
-                    <h3>{stats.pendingReimbursements || 0}</h3>
-                    <p>pending</p>
+                    <span>
+                      {user?.role === "HR"
+                        ? "Pending HR Reimbursements"
+                        : "Pending Manager Reimbursements"}
+                    </span>
+                    <h3>{stats.pendingManagerReimbursements || 0}</h3>
+                    <p>awaiting your approval</p>
                   </div>
 
                   <div className="mini-stat-card">
-                    <BadgeCheck size={23} />
-                    <span>Approval Role</span>
-                    <h3>{user?.role}</h3>
-                    <p>authorized</p>
+                    <Building2 size={23} />
+                    <span>Departments</span>
+                    <h3>{stats.departments || 0}</h3>
+                    <p>active departments</p>
                   </div>
                 </div>
 
                 <div className="modern-section-card">
-                  <h3>Approval Workload</h3>
+                  <h3>
+                    {user?.role === "HR" ? "HR Workload" : "Manager Workload"}
+                  </h3>
 
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                      gap: "16px",
+                      marginTop: "16px",
+                    }}
+                  >
+                    <button
+                      className="btn btn-primary"
+                      onClick={() => setActivePage("managerApprovals")}
+                    >
+                      Review Leave Approvals
+                    </button>
 
+                    <button
+                      className="btn btn-primary"
+                      onClick={() => setActivePage("reimbursementApprovals")}
+                    >
+                      Review Reimbursements
+                    </button>
+
+                    <button
+                      className="btn btn-primary"
+                      onClick={() => setActivePage("leaveCalendar")}
+                    >
+                      View Leave Calendar
+                    </button>
+                  </div>
                 </div>
               </>
             )}
@@ -662,7 +923,6 @@ const Dashboard = () => {
                 <div className="modern-section-card">
                   <h3>Finance Overview</h3>
 
-
                 </div>
               </>
             )}
@@ -679,7 +939,14 @@ const Dashboard = () => {
             <AdminSubcategories />
           </div>
         )}
-
+        {isAdmin && (
+          <div
+            className={`modern-section-card ${activePage === "teams" ? "page-visible" : "page-hidden"
+              }`}
+          >
+            <AdminTeams />
+          </div>
+        )}
         {isAdmin && (
           <div
             className={`modern-section-card ${activePage === "users" ? "page-visible" : "page-hidden"
@@ -689,6 +956,16 @@ const Dashboard = () => {
           </div>
         )}
 
+        {isTeamLeader && (
+          <div
+            className={`modern-section-card ${activePage === "tlApprovals"
+              ? "page-visible"
+              : "page-hidden"
+              }`}
+          >
+            <TLApprovals />
+          </div>
+        )}
         {isEmployee && (
           <div
             className={`modern-section-card ${activePage === "leave" ? "page-visible" : "page-hidden"
@@ -709,14 +986,16 @@ const Dashboard = () => {
 
         {isManagerOrHR && (
           <div
-            className={`modern-section-card ${activePage === "approvals" ? "page-visible" : "page-hidden"
+            className={`modern-section-card ${activePage === "managerApprovals"
+              ? "page-visible"
+              : "page-hidden"
               }`}
           >
-            <ApprovalRequests />
+            <ManagerApprovals />
           </div>
         )}
 
-        {isManagerOrHR && (
+        {(isManagerOrHR || isTeamLeader) && (
           <div
             className={`modern-section-card ${activePage === "reimbursementApprovals"
               ? "page-visible"
@@ -792,6 +1071,72 @@ const Dashboard = () => {
             <HolidayManagement />
           </div>
         )}
+
+        {showPasswordModal && (
+          <div className="modal-overlay">
+            <div className="modal-box">
+              <h2>Change Password</h2>
+
+              <p>
+                You must change your password before
+                continuing.
+              </p>
+
+              <div className="input-group">
+                <label>Current Password</label>
+
+                <input
+                  type="password"
+                  value={passwordData.currentPassword}
+                  onChange={(e) =>
+                    setPasswordData({
+                      ...passwordData,
+                      currentPassword: e.target.value,
+                    })
+                  }
+                />
+              </div>
+
+              <div className="input-group">
+                <label>New Password</label>
+
+                <input
+                  type="password"
+                  value={passwordData.newPassword}
+                  onChange={(e) =>
+                    setPasswordData({
+                      ...passwordData,
+                      newPassword: e.target.value,
+                    })
+                  }
+                />
+              </div>
+
+              <div className="input-group">
+                <label>Confirm Password</label>
+
+                <input
+                  type="password"
+                  value={passwordData.confirmPassword}
+                  onChange={(e) =>
+                    setPasswordData({
+                      ...passwordData,
+                      confirmPassword: e.target.value,
+                    })
+                  }
+                />
+              </div>
+
+              <button
+                className="btn btn-primary"
+                onClick={handlePasswordChange}
+              >
+                Update Password
+              </button>
+            </div>
+          </div>
+        )}
+
         {showEditProfile && (
           <div className="modal-overlay">
             <div className="modal-box profile-modal">

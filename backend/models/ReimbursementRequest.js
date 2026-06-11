@@ -5,6 +5,7 @@ const expenseItemSchema = new mongoose.Schema(
     description: {
       type: String,
       required: true,
+      trim: true,
     },
 
     category: {
@@ -30,6 +31,18 @@ const reimbursementRequestSchema = new mongoose.Schema(
       required: true,
     },
 
+    teamLeaderId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+
+    managerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+
     expenseFrom: {
       type: Date,
       required: true,
@@ -43,6 +56,7 @@ const reimbursementRequestSchema = new mongoose.Schema(
     businessPurpose: {
       type: String,
       required: true,
+      trim: true,
     },
 
     receiptFiles: {
@@ -74,48 +88,73 @@ const reimbursementRequestSchema = new mongoose.Schema(
       required: true,
     },
 
-    status: {
+    tlStatus: {
       type: String,
       enum: ["Pending", "Approved", "Rejected"],
       default: "Pending",
     },
 
-    approvals: {
-      managerStatus: {
-        type: String,
-        enum: ["Pending", "Approved", "Rejected"],
-        default: "Pending",
-      },
+    tlApprovedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
 
-      hrStatus: {
-        type: String,
-        enum: ["Pending", "Approved", "Rejected"],
-        default: "Pending",
-      },
+    tlApprovedAt: {
+      type: Date,
+      default: null,
+    },
 
-      managerApprovedBy: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-        default: null,
-      },
+    tlRejectionReason: {
+      type: String,
+      default: "",
+      trim: true,
+    },
 
-      hrApprovedBy: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-        default: null,
-      },
+    managerStatus: {
+      type: String,
+      enum: ["Pending", "Approved", "Rejected"],
+      default: "Pending",
+    },
 
-      managerRejectionReason: {
-        type: String,
-        default: "",
-        trim: true,
-      },
+    managerApprovedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
 
-      hrRejectionReason: {
-        type: String,
-        default: "",
-        trim: true,
-      },
+    managerApprovedAt: {
+      type: Date,
+      default: null,
+    },
+
+    managerRejectionReason: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    hrStatus: {
+      type: String,
+      enum: ["Pending", "Approved", "Rejected"],
+      default: "Pending",
+    },
+
+    hrApprovedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+
+    hrApprovedAt: {
+      type: Date,
+      default: null,
+    },
+
+    hrRejectionReason: {
+      type: String,
+      default: "",
+      trim: true,
     },
 
     financeStatus: {
@@ -123,6 +162,62 @@ const reimbursementRequestSchema = new mongoose.Schema(
       enum: ["Not Routed", "Pending Payment", "Paid"],
       default: "Not Routed",
     },
+
+    financeApprovedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+
+    financeApprovedAt: {
+      type: Date,
+      default: null,
+    },
+
+    finalStatus: {
+      type: String,
+      enum: [
+        "Pending Final Approval",
+        "Approved by Manager",
+        "Approved by HR",
+        "Rejected by Manager",
+        "Rejected by HR",
+        "Pending Finance Payment",
+        "Paid by Finance",
+      ],
+      default: "Pending Final Approval",
+    },
+
+    approvalHistory: [
+      {
+        level: {
+          type: String,
+          enum: ["TeamLeader", "Manager", "HR", "Finance"],
+        },
+
+        action: {
+          type: String,
+          enum: ["Submitted", "Approved", "Rejected", "Paid"],
+        },
+
+        actedBy: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+          default: null,
+        },
+
+        actedAt: {
+          type: Date,
+          default: Date.now,
+        },
+
+        remarks: {
+          type: String,
+          default: "",
+          trim: true,
+        },
+      },
+    ],
 
     rejectionReason: {
       type: String,

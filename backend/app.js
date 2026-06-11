@@ -11,7 +11,7 @@ import notificationRoutes from "./routes/notificationRoutes.js";
 import reimbursementRoutes from "./routes/reimbursementRoutes.js";
 import dashboardRoutes from "./routes/dashboardRoutes.js";
 import profileRoutes from "./routes/profileRoutes.js";
-import attendanceRoutes from "./routes/attendanceRoutes.js";
+import teamRoutes from "./routes/teamRoutes.js";
 const app = express();
 import holidayRoutes from "./routes/holidayRoutes.js";
 const __filename = fileURLToPath(import.meta.url);
@@ -40,10 +40,9 @@ app.use("/api/leave", leaveRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/reimbursements", reimbursementRoutes);
 app.use("/api/dashboard", dashboardRoutes);
-app.use("/api/profile", profileRoutes);
-app.use("/api/attendance", attendanceRoutes);
+app.use("/api/profile", profileRoutes);;
 app.use("/api/holidays", holidayRoutes);
-
+app.use("/api/teams", teamRoutes);
 if (process.env.NODE_ENV === "production") {
   app.use(express.static(path.join(__dirname, "../frontend/dist")));
 
