@@ -9,7 +9,6 @@ import {
   BadgeCheck,
   Bell,
   Wallet,
-  Clock,
 } from "lucide-react";
 
 import logo from "../assets/logo.png";
@@ -22,7 +21,6 @@ import AdminUsers from "./AdminUsers";
 import AdminLeaveReports from "./AdminLeaveReports";
 import AdminReimbursementReports from "./AdminReimbursementReports";
 import LeaveRequests from "./LeaveRequests";
-import ApprovalRequests from "./ApprovalRequests";
 import LeaveCalendar from "./LeaveCalendar";
 import Reimbursements from "./Reimbursements";
 import ReimbursementApprovals from "./ReimbursementApprovals";
@@ -1036,26 +1034,7 @@ const Dashboard = () => {
             <FinanceReimbursements />
           </div>
         )}
-        {isEmployee && (
-          <div
-            className={`modern-section-card ${activePage === "attendance"
-              ? "page-visible"
-              : "page-hidden"
-              }`}
-          >
-            <Attendance />
-          </div>
-        )}
-        {(isManagerOrHR || isFinance || isAdmin) && (
-          <div
-            className={`modern-section-card ${activePage === "attendanceReports"
-                ? "page-visible"
-                : "page-hidden"
-              }`}
-          >
-            <AdminAttendanceReports />
-          </div>
-        )}
+        
         {activePage === "leaveCalendar" && (
           <div className="modern-section-card">
             <LeaveCalendar />
@@ -1066,6 +1045,7 @@ const Dashboard = () => {
             <Notifications />
           </div>
         )}
+
         {activePage === "holidays" && (
           <div className="modern-section-card">
             <HolidayManagement />
