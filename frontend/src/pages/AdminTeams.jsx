@@ -64,12 +64,17 @@ const AdminTeams = () => {
       fetchUsers();
       fetchTeams();
     };
-
+    const handleDepartmentsUpdated = () => {
+      fetchDepartments();
+    };
     window.addEventListener(
       "users-updated",
       handleUsersUpdated
     );
-
+    window.addEventListener(
+      "departments-updated",
+      handleDepartmentsUpdated
+    );
     window.addEventListener(
       "focus",
       handleVisibilityRefresh
@@ -85,7 +90,10 @@ const AdminTeams = () => {
         "users-updated",
         handleUsersUpdated
       );
-
+      window.removeEventListener(
+        "departments-updated",
+        handleDepartmentsUpdated
+      );
       window.removeEventListener(
         "focus",
         handleVisibilityRefresh
@@ -133,14 +141,23 @@ const AdminTeams = () => {
 
       if (editingTeam) {
         await api.put(`/admin/teams/${editingTeam._id}`, formData);
+        window.dispatchEvent(
+          new CustomEvent("department-data-updated")
+        );
       } else {
         await api.post("/admin/teams", formData);
       }
 
       await fetchTeams();
       await fetchUsers();
+      await fetchDepartments();
+
       window.dispatchEvent(
         new CustomEvent("teams-updated")
+      );
+
+      window.dispatchEvent(
+        new CustomEvent("department-data-updated")
       );
 
       alert(
@@ -161,8 +178,14 @@ const AdminTeams = () => {
     try {
       await api.delete(`/admin/teams/${id}`);
       await fetchTeams();
+      await fetchDepartments();
+
       window.dispatchEvent(
         new CustomEvent("teams-updated")
+      );
+
+      window.dispatchEvent(
+        new CustomEvent("department-data-updated")
       );
       alert("Team deleted successfully");
     } catch (error) {
@@ -170,23 +193,13 @@ const AdminTeams = () => {
     }
   };
 
-  const toggleManager = (managerId) => {
+  const selectManager = (managerId) => {
     setFormData((prev) => ({
       ...prev,
-      managerIds: prev.managerIds.includes(managerId)
-        ? prev.managerIds.filter((id) => id !== managerId)
-        : [...prev.managerIds, managerId],
+      managerIds: managerId ? [managerId] : [],
     }));
   };
 
-  const toggleHR = (hrId) => {
-    setFormData((prev) => ({
-      ...prev,
-      hrIds: prev.hrIds.includes(hrId)
-        ? prev.hrIds.filter((id) => id !== hrId)
-        : [...prev.hrIds, hrId],
-    }));
-  };
 
   return (
     <>
@@ -250,43 +263,40 @@ const AdminTeams = () => {
             <div className="input-group">
               <label>Assign Managers</label>
 
-              <div className="dropdown-check-list">
-                {managers.length === 0 ? (
-                  <p>No managers available</p>
-                ) : (
-                  managers.map((manager) => (
-                    <label key={manager._id} className="checkbox-row">
-                      <input
-                        type="checkbox"
-                        checked={formData.managerIds.includes(manager._id)}
-                        onChange={() => toggleManager(manager._id)}
-                      />
-                      {manager.name}
-                    </label>
-                  ))
-                )}
-              </div>
+              <select
+                value={formData.managerIds[0] || ""}
+                onChange={(e) => selectManager(e.target.value)}
+              >
+                <option value="">Select Manager</option>
+
+                {managers.map((manager) => (
+                  <option key={manager._id} value={manager._id}>
+                    {manager.name}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div className="input-group">
               <label>Assign HR</label>
 
-              <div className="dropdown-check-list">
-                {hrs.length === 0 ? (
-                  <p>No HR users available</p>
-                ) : (
-                  hrs.map((hr) => (
-                    <label key={hr._id} className="checkbox-row">
-                      <input
-                        type="checkbox"
-                        checked={formData.hrIds.includes(hr._id)}
-                        onChange={() => toggleHR(hr._id)}
-                      />
-                      {hr.name}
-                    </label>
-                  ))
-                )}
-              </div>
+              <select
+                value={formData.hrIds[0] || ""}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    hrIds: e.target.value ? [e.target.value] : [],
+                  })
+                }
+              >
+                <option value="">Select HR</option>
+
+                {hrs.map((hr) => (
+                  <option key={hr._id} value={hr._id}>
+                    {hr.name}
+                  </option>
+                ))}
+              </select>
             </div>
             <div className="grid-2">
               <div className="input-group">

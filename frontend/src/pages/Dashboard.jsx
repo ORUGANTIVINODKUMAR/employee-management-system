@@ -100,7 +100,10 @@ const Dashboard = () => {
   const menuButton = (key, icon, label) => (
     <button
       className={activePage === key ? "active-menu" : ""}
-      onClick={() => setActivePage(key)}
+      onClick={() => {
+        setActivePage(key);
+        localStorage.setItem("activePage", key);
+      }}
     >
       {icon}
       {label}
@@ -169,7 +172,18 @@ const Dashboard = () => {
             {isAdmin && (
               <>
                 {menuButton("departments", <Building2 size={18} />, "Departments")}
-                {menuButton("teams", <Users size={18} />, "Teams")}
+                <button
+                  className={activePage === "teams" ? "active-menu" : ""}
+                  onClick={() => {
+                    window.dispatchEvent(new CustomEvent("departments-updated"));
+
+                    setActivePage("teams");
+                    localStorage.setItem("activePage", "teams");
+                  }}
+                >
+                  <Users size={18} />
+                  Teams
+                </button>
                 {menuButton("users", <Users size={18} />, "User Management")}
 
                 {menuButton(
@@ -186,10 +200,10 @@ const Dashboard = () => {
               </>
             )}
 
-            {isEmployee &&
+            {(isEmployee || isTeamLeader) &&
               menuButton("leave", <CalendarCheck size={18} />, "Leaves")}
 
-            {isEmployee &&
+            {(isEmployee || isTeamLeader) &&
               menuButton("reimbursements", <Receipt size={18} />, "Reimbursements")}
 
             {isTeamLeader &&
@@ -345,9 +359,6 @@ const Dashboard = () => {
 
         {activePage === "dashboard" && (
           <>
-
-
-
 
             <div
               className="modern-section-card"
@@ -777,28 +788,40 @@ const Dashboard = () => {
                   >
                     <button
                       className="btn btn-primary"
-                      onClick={() => setActivePage("users")}
+                      onClick={() => {
+                        setActivePage("users");
+                        localStorage.setItem("activePage", "users");
+                      }}
                     >
                       Add Employee
                     </button>
 
                     <button
                       className="btn btn-primary"
-                      onClick={() => setActivePage("departments")}
+                      onClick={() => {
+                        setActivePage("departments");
+                        localStorage.setItem("activePage", "departments");
+                      }}
                     >
                       Manage Departments
                     </button>
 
                     <button
                       className="btn btn-primary"
-                      onClick={() => setActivePage("leaveReports")}
+                      onClick={() => {
+                        setActivePage("leaveReports");
+                        localStorage.setItem("activePage", "leaveReports");
+                      }}
                     >
                       Leave Reports
                     </button>
 
                     <button
                       className="btn btn-primary"
-                      onClick={() => setActivePage("reimbursementReports")}
+                      onClick={() => {
+                        setActivePage("reimbursementReports");
+                        localStorage.setItem("activePage", "reimbursementReports");
+                      }}
                     >
                       Reimbursement Reports
                     </button>
@@ -964,19 +987,17 @@ const Dashboard = () => {
             <TLApprovals />
           </div>
         )}
-        {isEmployee && (
+        {(isEmployee || isTeamLeader) && (
           <div
-            className={`modern-section-card ${activePage === "leave" ? "page-visible" : "page-hidden"
-              }`}
+            className={`modern-section-card ${activePage === "leave" ? "page-visible" : "page-hidden"}`}
           >
             <LeaveRequests />
           </div>
         )}
 
-        {isEmployee && (
+        {(isEmployee || isTeamLeader) && (
           <div
-            className={`modern-section-card ${activePage === "reimbursements" ? "page-visible" : "page-hidden"
-              }`}
+            className={`modern-section-card ${activePage === "reimbursements" ? "page-visible" : "page-hidden"}`}
           >
             <Reimbursements />
           </div>

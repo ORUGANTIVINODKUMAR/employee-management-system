@@ -17,11 +17,22 @@ const TLApprovals = () => {
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectLeaveId, setRejectLeaveId] = useState(null);
   const [rejectionReason, setRejectionReason] = useState("");
+  const [activeTab, setActiveTab] = useState("Pending");
 
   const fetchRequests = async () => {
     try {
-      const { data } = await api.get("/leave/tl-pending");
-      setRequests(data.leaveRequests || []);
+      if (activeTab === "Pending") {
+        const { data } = await api.get("/leave/tl-pending");
+        setRequests(data.leaveRequests || []);
+      } else {
+        const { data } = await api.get("/leave/tl/history");
+
+        const filtered = (data.leaveRequests || []).filter(
+          (item) => item.tlStatus === activeTab
+        );
+
+        setRequests(filtered);
+      }
     } catch (error) {
       console.log(error.response?.data);
     }
@@ -29,9 +40,11 @@ const TLApprovals = () => {
 
   useEffect(() => {
     fetchRequests();
+
     const interval = setInterval(fetchRequests, 5000);
+
     return () => clearInterval(interval);
-  }, []);
+  }, [activeTab]);
 
   const filteredRequests = requests.filter((item) => {
     const search = searchTerm.toLowerCase();
@@ -44,18 +57,6 @@ const TLApprovals = () => {
       item.tlStatus?.toLowerCase().includes(search)
     );
   });
-
-  const pendingTLCount = requests.filter(
-    (item) => item.tlStatus === "Pending"
-  ).length;
-
-  const approvedTLCount = requests.filter(
-    (item) => item.tlStatus === "Approved"
-  ).length;
-
-  const rejectedTLCount = requests.filter(
-    (item) => item.tlStatus === "Rejected"
-  ).length;
 
   const openReasonModal = (title, content) => {
     setModalTitle(title);
@@ -72,8 +73,8 @@ const TLApprovals = () => {
   const approveLeave = async (id) => {
     try {
       await api.put(`/leave/tl-approve/${id}`);
-      alert("Leave recommendation approved by Team Leader");
-      fetchRequests();
+      alert("Leave approved by Team Leader");
+      await fetchRequests();
     } catch (error) {
       alert(error.response?.data?.message || "Approval failed");
     }
@@ -90,13 +91,13 @@ const TLApprovals = () => {
         rejectionReason,
       });
 
-      alert("Leave recommendation rejected by Team Leader");
+      alert("Leave rejected by Team Leader");
 
       setShowRejectModal(false);
       setRejectLeaveId(null);
       setRejectionReason("");
 
-      fetchRequests();
+      await fetchRequests();
     } catch (error) {
       alert(error.response?.data?.message || "Rejection failed");
     }
@@ -108,35 +109,21 @@ const TLApprovals = () => {
         <div>
           <h2 className="card-title">Team Leader Leave Review</h2>
           <p className="section-subtitle">
-            Review leave requests from your reporting employees. Your action is advisory; Manager or HR gives the final decision.
+            Review leave requests from your reporting employees.
           </p>
         </div>
       </div>
 
-      <div className="reimbursement-summary-grid">
-        <div className="reimbursement-summary-card">
-          <span>Total Requests</span>
-          <h3>{requests.length}</h3>
-          <p>assigned to you</p>
-        </div>
-
-        <div className="reimbursement-summary-card">
-          <span>Pending TL Review</span>
-          <h3>{pendingTLCount}</h3>
-          <p>awaiting your action</p>
-        </div>
-
-        <div className="reimbursement-summary-card">
-          <span>TL Approved</span>
-          <h3>{approvedTLCount}</h3>
-          <p>your approved recommendations</p>
-        </div>
-
-        <div className="reimbursement-summary-card">
-          <span>TL Rejected</span>
-          <h3>{rejectedTLCount}</h3>
-          <p>your rejected recommendations</p>
-        </div>
+      <div className="leave-filter-tabs">
+        {["Pending", "Approved", "Rejected"].map((tab) => (
+          <button
+            key={tab}
+            className={activeTab === tab ? "active-filter" : ""}
+            onClick={() => setActiveTab(tab)}
+          >
+            {tab}
+          </button>
+        ))}
       </div>
 
       <div style={{ marginBottom: "18px" }}>
@@ -181,12 +168,7 @@ const TLApprovals = () => {
 
                     <div>
                       <strong>{item.employeeId?.name}</strong>
-                      <p
-                        style={{
-                          fontSize: "13px",
-                          color: "var(--muted)",
-                        }}
-                      >
+                      <p style={{ fontSize: "13px", color: "var(--muted)" }}>
                         {item.employeeId?.email}
                       </p>
                     </div>
@@ -279,14 +261,8 @@ const TLApprovals = () => {
 
             {filteredRequests.length === 0 && (
               <tr>
-                <td
-                  colSpan="8"
-                  style={{
-                    textAlign: "center",
-                    padding: "24px",
-                  }}
-                >
-                  No leave requests found for TL review.
+                <td colSpan="8" style={{ textAlign: "center", padding: "24px" }}>
+                  No {activeTab.toLowerCase()} leave requests found.
                 </td>
               </tr>
             )}
@@ -323,13 +299,7 @@ const TLApprovals = () => {
 
       {showRejectModal && (
         <div className="modal-overlay">
-          <div
-            className="modal-card"
-            style={{
-              maxWidth: "600px",
-              width: "90%",
-            }}
-          >
+          <div className="modal-card" style={{ maxWidth: "600px", width: "90%" }}>
             <div className="modal-header">
               <h3>Reject Leave Recommendation</h3>
 

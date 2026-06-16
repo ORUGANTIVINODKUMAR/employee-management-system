@@ -171,26 +171,26 @@ export const getManagerApprovalHistory = async (req, res) => {
     const filter =
       req.user.role === "HR"
         ? {
-            finalStatus: {
-              $in: [
-                "Approved by Manager",
-                "Approved by HR",
-                "Rejected by Manager",
-                "Rejected by HR",
-              ],
-            },
-          }
+          finalStatus: {
+            $in: [
+              "Approved by Manager",
+              "Approved by HR",
+              "Rejected by Manager",
+              "Rejected by HR",
+            ],
+          },
+        }
         : {
-            managerId: req.user._id,
-            finalStatus: {
-              $in: [
-                "Approved by Manager",
-                "Approved by HR",
-                "Rejected by Manager",
-                "Rejected by HR",
-              ],
-            },
-          };
+          managerId: req.user._id,
+          finalStatus: {
+            $in: [
+              "Approved by Manager",
+              "Approved by HR",
+              "Rejected by Manager",
+              "Rejected by HR",
+            ],
+          },
+        };
 
     const leaveRequests = await LeaveRequest.find(filter)
       .populate(
@@ -228,6 +228,40 @@ export const getPendingTLRequests = async (req, res) => {
       .populate("employeeId", "name email employeeId designation")
       .populate("subcategoryId", "name")
       .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      leaveRequests,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export const getTLApprovalHistory = async (req, res) => {
+  try {
+    if (req.user.role !== "TeamLeader") {
+      return res.status(403).json({
+        success: false,
+        message: "Only Team Leaders can view history",
+      });
+    }
+
+    const leaveRequests = await LeaveRequest.find({
+      teamLeaderId: req.user._id,
+      tlStatus: {
+        $in: ["Approved", "Rejected"],
+      },
+    })
+      .populate(
+        "employeeId",
+        "name email employeeId designation"
+      )
+      .populate("subcategoryId", "name")
+      .sort({ updatedAt: -1 });
 
     res.status(200).json({
       success: true,
@@ -380,12 +414,15 @@ export const getPendingManagerRequests = async (req, res) => {
 
     const filter =
       req.user.role === "HR"
-        ? { finalStatus: "Pending Final Approval" }
+        ? {
+          finalStatus: "Pending Final Approval",
+          tlStatus: "Approved",
+        }
         : {
           finalStatus: "Pending Final Approval",
           managerId: req.user._id,
+          tlStatus: "Approved",
         };
-
     const leaveRequests = await LeaveRequest.find(filter)
       .populate("employeeId", "name email employeeId designation")
       .populate("subcategoryId", "name")

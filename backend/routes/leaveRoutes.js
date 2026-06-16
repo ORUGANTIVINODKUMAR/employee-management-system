@@ -11,7 +11,7 @@ import {
   getPendingManagerRequests,
   approveLeaveByManager,
   rejectLeaveByManager,
-
+  getTLApprovalHistory,
   getFinanceLeaves,
   getApprovedLeaveCalendar,
   getTodayLeaves,
@@ -28,7 +28,11 @@ router.post(
   upload.single("proofFile"),
   createLeaveRequest
 );
-
+router.get(
+  "/tl/history",
+  protect,
+  getTLApprovalHistory
+);
 router.get(
   "/my-requests",
   protect,
@@ -47,7 +51,7 @@ router.put(
   protect,
   approveLeaveByTL
 );
-
+router.get("/tl-history", protect, getTLApprovalHistory);
 router.put(
   "/tl-reject/:id",
   protect,

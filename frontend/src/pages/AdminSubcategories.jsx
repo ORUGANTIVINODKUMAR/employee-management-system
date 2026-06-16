@@ -20,15 +20,29 @@ const AdminSubcategories = () => {
       fetchSubcategories();
     };
 
+    const handleDepartmentRefresh = () => {
+      fetchSubcategories();
+    };
+
     window.addEventListener(
       "users-updated",
       handleUsersUpdated
+    );
+
+    window.addEventListener(
+      "department-data-updated",
+      handleDepartmentRefresh
     );
 
     return () => {
       window.removeEventListener(
         "users-updated",
         handleUsersUpdated
+      );
+
+      window.removeEventListener(
+        "department-data-updated",
+        handleDepartmentRefresh
       );
     };
   }, []);
@@ -44,6 +58,10 @@ const AdminSubcategories = () => {
     setShowModal(false);
 
     await fetchSubcategories();
+
+    window.dispatchEvent(
+      new CustomEvent("departments-updated")
+    );
   };
 
   const handleDelete = async (id) => {
@@ -184,7 +202,15 @@ const AdminSubcategories = () => {
                     {item.userCount > 0 && (
                       <button
                         className="btn btn-secondary"
-                        onClick={() => setSelectedDepartment(item)}
+                        onClick={async () => {
+                          await fetchSubcategories();
+
+                          const updated = subcategories.find(
+                            (d) => d._id === item._id
+                          );
+
+                          setSelectedDepartment(updated || item);
+                        }}
                       >
                         View
                       </button>
@@ -255,46 +281,74 @@ const AdminSubcategories = () => {
                 </div>
               </div>
 
-              <div className="table-wrapper modern-table-wrapper">
-                <table className="custom-table">
-                  <thead>
-                    <tr>
-                      <th>Name</th>
-                      <th>Role</th>
-                      <th>Employee ID</th>
-                      <th>Email</th>
-                      <th>Designation</th>
-                    </tr>
-                  </thead>
+              <h3 style={{ margin: "24px 0 16px" }}>
+                Department Teams
+              </h3>
 
-                  <tbody>
-                    {selectedDepartment.users?.map((user) => (
-                      <tr key={user._id}>
-                        <td>
-                          <strong>{user.name}</strong>
-                        </td>
-                        <td>{user.role}</td>
-                        <td>{user.employeeId || "N/A"}</td>
-                        <td>{user.email}</td>
-                        <td>{user.designation || "N/A"}</td>
-                      </tr>
-                    ))}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))",
+                  gap: "20px",
+                }}
+              >
+                {selectedDepartment.teams?.map((team) => (
+                  <div
+                    key={team._id}
+                    className="team-hierarchy-card"
+                  >
+                    <div className="team-card-header">
+                      <h4>{team.name}</h4>
+                    </div>
 
-                    {selectedDepartment.users?.length === 0 && (
-                      <tr>
-                        <td
-                          colSpan="5"
+                    <div className="team-card-body">
+                      <p>
+                        👨 <strong>Manager:</strong>{" "}
+                        {team.manager?.name || "Not Assigned"}
+                      </p>
+
+                      <p>
+                        👩 <strong>HR:</strong>{" "}
+                        {team.hr?.name || "Not Assigned"}
+                      </p>
+
+                      <p>
+                        🎯 <strong>Team Leader:</strong>{" "}
+                        {team.teamLeader?.name || "Not Assigned"}
+                      </p>
+
+                      <p>
+                        👥 <strong>Employees:</strong>{" "}
+                        {team.employeeCount || 0}
+                      </p>
+                      {team.employees?.length > 0 && (
+                        <div
                           style={{
-                            textAlign: "center",
-                            padding: "20px",
+                            marginTop: "10px",
+                            padding: "10px",
+                            background: "#f8fafc",
+                            borderRadius: "10px",
                           }}
                         >
-                          No users assigned to this department.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
+                          {team.employees.map((emp) => (
+                            <div
+                              key={emp._id}
+                              style={{
+                                fontSize: "13px",
+                                marginBottom: "6px",
+                              }}
+                            >
+                              👤 {emp.name}{" "}
+                              <span style={{ color: "#64748b" }}>
+                                ({emp.employeeId || "N/A"})
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>

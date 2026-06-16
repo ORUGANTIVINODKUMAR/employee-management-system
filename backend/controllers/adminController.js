@@ -42,8 +42,13 @@ export const getSubcategories = async (req, res) => {
         $in: ["Employee", "TeamLeader", "Manager", "HR"],
       },
     }).select(
-      "name email employeeId designation role subcategoryId"
+      "name email employeeId designation role subcategoryId teamId"
     );
+
+    const teams = await Team.find()
+      .populate("managerIds", "name email employeeId designation role")
+      .populate("hrIds", "name email employeeId designation role")
+      .populate("teamLeaderId", "name email employeeId designation role");
 
     const subcategoriesWithUsers = subcategories.map((department) => {
       const departmentUsers = users.filter(
@@ -55,29 +60,90 @@ export const getSubcategories = async (req, res) => {
         (user) => user.role === "Employee"
       );
 
-      const teamLeaders = departmentUsers.filter(
-        (user) => user.role === "TeamLeader"
+      const departmentTeams = teams.filter(
+        (team) =>
+          team.departmentId?.toString() === department._id.toString()
       );
 
-      const managers = departmentUsers.filter(
-        (user) => user.role === "Manager"
-      );
+      const managers = [
+        ...new Map(
+          departmentTeams
+            .flatMap((team) => team.managerIds || [])
+            .filter(Boolean)
+            .map((manager) => [
+              manager._id.toString(),
+              manager,
+            ])
+        ).values(),
+      ];
 
-      const hrs = departmentUsers.filter(
-        (user) => user.role === "HR"
-      );
+      const hrs = [
+        ...new Map(
+          departmentTeams
+            .flatMap((team) => team.hrIds || [])
+            .filter(Boolean)
+            .map((hr) => [
+              hr._id.toString(),
+              hr,
+            ])
+        ).values(),
+      ];
 
+      const teamLeaders = [
+        ...new Map(
+          departmentTeams
+            .map((team) => team.teamLeaderId)
+            .filter(Boolean)
+            .map((tl) => [
+              tl._id.toString(),
+              tl,
+            ])
+        ).values(),
+      ];
+
+      const usersForView = [
+        ...employees,
+        ...teamLeaders,
+        ...managers,
+        ...hrs,
+      ];
+
+      const teamsForView = departmentTeams.map((team) => {
+        const teamEmployees = employees.filter(
+          (emp) => emp.teamId?.toString() === team._id.toString()
+        );
+
+        return {
+          _id: team._id,
+          name: team.name,
+
+          manager:
+            team.managerIds?.length > 0
+              ? team.managerIds[0]
+              : null,
+
+          hr:
+            team.hrIds?.length > 0
+              ? team.hrIds[0]
+              : null,
+
+          teamLeader: team.teamLeaderId || null,
+
+          employeeCount: teamEmployees.length,
+          employees: teamEmployees,
+        };
+      });
       return {
         ...department.toObject(),
 
-        users: departmentUsers,
-        userCount: departmentUsers.length,
+        users: usersForView,
+        userCount: usersForView.length,
 
         employeeCount: employees.length,
         teamLeaderCount: teamLeaders.length,
         managerCount: managers.length,
         hrCount: hrs.length,
-
+        teams: teamsForView,
         employees,
         teamLeaders,
         managers,

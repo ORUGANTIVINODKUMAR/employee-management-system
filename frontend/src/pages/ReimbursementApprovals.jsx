@@ -11,7 +11,7 @@ import { useAuth } from "../context/AuthContext";
 
 const ReimbursementApprovals = () => {
   const { user } = useAuth();
-
+  const [activeTab, setActiveTab] = useState("Pending");
   const [requests, setRequests] = useState([]);
   const [activeFilter, setActiveFilter] =
     useState("All");
@@ -46,18 +46,54 @@ const ReimbursementApprovals = () => {
 
   const fetchRequests = async () => {
     try {
-      const endpoint =
-        user?.role === "TeamLeader"
-          ? "/reimbursements/tl-pending"
-          : "/reimbursements/manager-pending";
+      let endpoint = "";
+
+      if (user?.role === "TeamLeader") {
+        endpoint =
+          activeTab === "Pending"
+            ? "/reimbursements/tl-pending"
+            : "/reimbursements/tl/history";
+      } else {
+        endpoint =
+          activeTab === "Pending"
+            ? "/reimbursements/manager-pending"
+            : "/reimbursements/manager/history";
+      }
 
       const { data } = await api.get(endpoint);
 
-      setRequests(
+      let reimbursementRequests =
         data.reimbursementRequests ||
         data.reimbursements ||
-        []
-      );
+        [];
+
+      if (user?.role === "TeamLeader") {
+        if (activeTab !== "Pending") {
+          reimbursementRequests =
+            reimbursementRequests.filter(
+              (item) => item.tlStatus === activeTab
+            );
+        }
+      } else {
+        if (activeTab === "Approved") {
+          reimbursementRequests =
+            reimbursementRequests.filter(
+              (item) =>
+                item.finalStatus?.includes("Approved") ||
+                item.finalStatus === "Paid by Finance"
+            );
+        }
+
+        if (activeTab === "Rejected") {
+          reimbursementRequests =
+            reimbursementRequests.filter(
+              (item) =>
+                item.finalStatus?.includes("Rejected")
+            );
+        }
+      }
+
+      setRequests(reimbursementRequests);
     } catch (error) {
       alert(
         error.response?.data?.message ||
@@ -68,7 +104,15 @@ const ReimbursementApprovals = () => {
 
   useEffect(() => {
     fetchRequests();
-  }, []);
+
+    const interval = setInterval(fetchRequests, 10000);
+
+    return () => clearInterval(interval);
+  }, [activeTab, user?.role]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeFilter, searchTerm]);
 
   const filteredRequests =
     safeRequests.filter((item) => {
@@ -229,8 +273,6 @@ const ReimbursementApprovals = () => {
       setRejectionReason("");
     };
 
-
-
   const printReimbursementForm = (
     item
   ) => {
@@ -250,7 +292,19 @@ const ReimbursementApprovals = () => {
           </p>
         </div>
       </div>
-
+      {["TeamLeader", "Manager", "HR"].includes(user?.role) && (
+        <div className="leave-filter-tabs">
+          {["Pending", "Approved", "Rejected"].map((tab) => (
+            <button
+              key={tab}
+              className={activeTab === tab ? "active-filter" : ""}
+              onClick={() => setActiveTab(tab)}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
+      )}
       <div className="reimbursement-summary-grid">
         <div className="reimbursement-summary-card">
           <span>Total Claims</span>
@@ -282,7 +336,7 @@ const ReimbursementApprovals = () => {
 
         <div className="reimbursement-summary-card">
           <span>Total Amount</span>
-          <h3>₹ {totalAmount}</h3>
+          <h3>₹ {totalAmount.toLocaleString("en-IN")}</h3>
           <p>claims value</p>
         </div>
       </div>
@@ -406,10 +460,7 @@ const ReimbursementApprovals = () => {
                   </td>
 
                   <td>
-                    ₹{" "}
-                    {
-                      item.totalReimbursement
-                    }
+                    ₹ {Number(item.totalReimbursement || 0).toLocaleString("en-IN")}
                   </td>
 
                   <td>
@@ -452,7 +503,6 @@ const ReimbursementApprovals = () => {
                       "N/A"
                     )}
                   </td>
-
                   <td>
                     <span
                       className={
@@ -470,9 +520,9 @@ const ReimbursementApprovals = () => {
                       {item.finalStatus}
                     </span>
                   </td>
-
                   <td>
-                    {item.finalStatus === "Pending Final Approval" ? (
+                    {activeTab === "Pending" &&
+                      item.finalStatus === "Pending Final Approval" ? (
                       <div className="action-buttons">
                         <button
                           className="approve-btn"
@@ -638,6 +688,29 @@ const ReimbursementApprovals = () => {
             </button>
           </div>
         )}
+      {showReasonModal && (
+        <div className="modal-overlay">
+          <div className="modal-card" style={{ maxWidth: "500px" }}>
+            <div className="modal-header">
+              <h3>{modalTitle}</h3>
+
+              <button onClick={() => setShowReasonModal(false)}>
+                ✕
+              </button>
+            </div>
+
+            <div
+              style={{
+                padding: "20px",
+                lineHeight: "1.7",
+                whiteSpace: "pre-wrap",
+              }}
+            >
+              {modalContent}
+            </div>
+          </div>
+        </div>
+      )}
       {rejectionModal && (
         <div className="modal-overlay">
           <div

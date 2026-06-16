@@ -1770,3 +1770,32 @@ body {
   background: #f3f4f6;
   border-radius: 8px;
 }
+.team-hierarchy-card {
+  background: #fff;
+  border-radius: 14px;
+  border: 1px solid #e5e7eb;
+  padding: 18px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+}
+
+.team-hierarchy-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+}
+
+.team-card-header {
+  border-bottom: 1px solid #eee;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+}
+
+.team-card-header h4 {
+  margin: 0;
+  color: #1e3a8a;
+}
+
+.team-card-body p {
+  margin: 10px 0;
+  font-size: 14px;
+}

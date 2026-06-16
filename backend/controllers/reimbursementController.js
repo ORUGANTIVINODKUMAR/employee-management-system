@@ -114,6 +114,7 @@ export const createReimbursementRequest = async (req, res) => {
 };
 
 export const getMyReimbursementRequests = async (req, res) => {
+  
   try {
     const reimbursementRequests = await ReimbursementRequest.find({
       employeeId: req.user._id,
@@ -133,7 +134,35 @@ export const getMyReimbursementRequests = async (req, res) => {
     });
   }
 };
+export const getTLReimbursementHistory = async (req, res) => {
+    try {
+      if (req.user.role !== "TeamLeader") {
+        return res.status(403).json({
+          success: false,
+          message: "Only Team Leaders can view reimbursement history",
+        });
+      }
 
+      const reimbursementRequests = await ReimbursementRequest.find({
+        teamLeaderId: req.user._id,
+        tlStatus: {
+          $in: ["Approved", "Rejected"],
+        },
+      })
+        .populate("employeeId", "name email employeeId designation")
+        .sort({ updatedAt: -1 });
+
+      res.status(200).json({
+        success: true,
+        reimbursementRequests,
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error.message,
+      });
+    }
+  };
 export const getPendingTLReimbursements = async (req, res) => {
   try {
     if (req.user.role !== "TeamLeader") {
@@ -321,7 +350,62 @@ export const getPendingManagerReimbursements = async (req, res) => {
     });
   }
 };
+export const getManagerReimbursementHistory = async (req, res) => {
+  try {
+    if (!["Manager", "HR"].includes(req.user.role)) {
+      return res.status(403).json({
+        success: false,
+        message: "Only Manager or HR can view reimbursement history",
+      });
+    }
 
+    const filter =
+      req.user.role === "HR"
+        ? {
+            finalStatus: {
+              $in: [
+                "Approved by Manager",
+                "Approved by HR",
+                "Rejected by Manager",
+                "Rejected by HR",
+                "Pending Finance Payment",
+                "Paid by Finance",
+              ],
+            },
+          }
+        : {
+            managerId: req.user._id,
+            finalStatus: {
+              $in: [
+                "Approved by Manager",
+                "Approved by HR",
+                "Rejected by Manager",
+                "Rejected by HR",
+                "Pending Finance Payment",
+                "Paid by Finance",
+              ],
+            },
+          };
+
+    const reimbursementRequests = await ReimbursementRequest.find(filter)
+      .populate("employeeId", "name email employeeId designation")
+      .populate("teamLeaderId", "name email role")
+      .populate("tlApprovedBy", "name")
+      .populate("managerApprovedBy", "name")
+      .populate("hrApprovedBy", "name")
+      .sort({ updatedAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      reimbursementRequests,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
 export const approveReimbursementByManager = async (req, res) => {
   try {
     if (!["Manager", "HR"].includes(req.user.role)) {

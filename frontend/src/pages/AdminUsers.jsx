@@ -155,6 +155,10 @@ const AdminUsers = () => {
 
   const selectedTeamLeader =
     selectedTeam?.teamLeaderId || null;
+  const filteredTeams = teams.filter(
+    (team) =>
+      team.departmentId?._id === formData.subcategoryId
+  );
   const exportUsersToExcel = () => {
     const exportData = filteredUsers.map((user) => ({
       Name: user.name,
@@ -790,78 +794,77 @@ const AdminUsers = () => {
               {formData.role === "Employee" && (
                 <div className="grid-2">
                   <div className="input-group">
-                    <label>Team</label>
+                    <label>Department</label>
+                    <select
+                      name="subcategoryId"
+                      value={formData.subcategoryId}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          subcategoryId: e.target.value,
+                          teamId: "",
+                          managerId: "",
+                          hrId: "",
+                          teamLeaderId: "",
+                        })
+                      }
+                      required
+                    >
+                      <option value="">Select Department</option>
+                      {subcategories.map((department) => (
+                        <option key={department._id} value={department._id}>
+                          {department.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
+                  <div className="input-group">
+                    <label>Team</label>
                     <select
                       name="teamId"
                       value={formData.teamId}
                       onChange={(e) => {
                         const teamId = e.target.value;
-
-                        const team = teams.find(
-                          (item) => item._id === teamId
-                        );
+                        const team = teams.find((item) => item._id === teamId);
 
                         setFormData({
                           ...formData,
                           teamId,
-                          subcategoryId: team?.departmentId?._id || "",
                           teamLeaderId: team?.teamLeaderId?._id || "",
                           managerId: team?.managerIds?.[0]?._id || "",
                           hrId: team?.hrIds?.[0]?._id || "",
                         });
                       }}
+                      disabled={!formData.subcategoryId}
                       required
                     >
+                      <option value="">
+                        {formData.subcategoryId ? "Select Team" : "Select Department First"}
+                      </option>
 
-                      <option value="">Select Team</option>
-
-                      {(teams || []).map((team) => (
+                      {filteredTeams.map((team) => (
                         <option key={team._id} value={team._id}>
                           {team.name}
                         </option>
                       ))}
                     </select>
                   </div>
-                  <div className="input-group">
-                    <label>Department</label>
 
-                    <input
-                      value={selectedTeam?.departmentId?.name || ""}
-                      disabled
-                    />
-                  </div>
                   <div className="input-group">
                     <label>Team Leader</label>
-
-                    <input
-                      value={selectedTeamLeader?.name || "No Team Leader assigned"}
-                      disabled
-                    />
-
-                    <input
-                      type="hidden"
-                      name="teamLeaderId"
-                      value={formData.teamLeaderId}
-                    />
+                    <input value={selectedTeamLeader?.name || "No Team Leader assigned"} disabled />
                   </div>
+
                   <div className="input-group">
                     <label>Manager</label>
-
-                    <input
-                      value={
-                        selectedTeam?.managerIds?.[0]?.name || ""
-                      }
-                      disabled
-                    />
+                    <input value={selectedTeam?.managerIds?.[0]?.name || "No Manager assigned"} disabled />
                   </div>
-                  <div className="input-group">
-                    <label>HR</label>
 
+                  <div className="input-group" style={{ gridColumn: "1 / -1" }}>
+                    <label>HR</label>
                     <input
-                      value={
-                        selectedTeam?.hrIds?.[0]?.name || ""
-                      }
+                      value={selectedTeam?.hrIds?.[0]?.name || "No HR assigned"}
                       disabled
                     />
                   </div>
@@ -881,11 +884,16 @@ const AdminUsers = () => {
                     >
                       <option value="">Select Team</option>
 
-                      {(teams || []).map((team) => (
-                        <option key={team._id} value={team._id}>
-                          {team.name}
-                        </option>
-                      ))}
+                      {teams
+                        .filter(
+                          (team) =>
+                            team.departmentId?._id === formData.subcategoryId
+                        )
+                        .map((team) => (
+                          <option key={team._id} value={team._id}>
+                            {team.name}
+                          </option>
+                        ))}
                     </select>
                   </div>
 

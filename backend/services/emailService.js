@@ -1,5 +1,6 @@
 import transporter from "../config/mail.js";
-
+import { emailTemplate } from "../utils/emailTemplate.js";
+const mailFrom = `"UPSILON HRMS" <${process.env.SMTP_USER}>`;
 export const sendLeaveRequestEmail = async ({
   to,
   employeeName,
@@ -37,6 +38,7 @@ export const sendLeaveRequestEmail = async ({
   `;
 
   await transporter.sendMail({
+    from: mailFrom,
     to,
     subject: "New Leave Request Submitted",
     html,
@@ -57,14 +59,14 @@ export const sendDecisionEmail = async ({
     <p>Hello ${employeeName},</p>
     <p>Your ${requestType} request has been marked as <strong>${status}</strong>.</p>
 
-    ${
-      status === "Rejected"
-        ? `<p><strong>Rejection Reason:</strong> ${rejectionReason}</p>`
-        : ""
+    ${status === "Rejected"
+      ? `<p><strong>Rejection Reason:</strong> ${rejectionReason}</p>`
+      : ""
     }
   `;
 
   await transporter.sendMail({
+    from: mailFrom,
     to,
     subject,
     html,
@@ -113,6 +115,7 @@ export const sendFinanceLeaveEmail = async ({
   `;
 
   await transporter.sendMail({
+    from: mailFrom,
     to,
     subject: "Approved Leave Details",
     html,
@@ -128,39 +131,48 @@ export const sendFinanceReimbursementEmail = async ({
   expenseTo,
   status,
 }) => {
-  const html = `
-    <h2>Reimbursement Ready for Payment</h2>
-    <p>A reimbursement request has been fully approved and is ready for finance processing.</p>
+  const html = emailTemplate(
+    "New Reimbursement Request",
+    `
+  <p>
+    A new reimbursement request has been submitted.
+  </p>
 
-    <table border="1" cellpadding="8" cellspacing="0">
-      <tr>
-        <td><strong>Employee Name</strong></td>
-        <td>${employeeName}</td>
-      </tr>
-      <tr>
-        <td><strong>Business Purpose</strong></td>
-        <td>${businessPurpose}</td>
-      </tr>
-      <tr>
-        <td><strong>Expense From</strong></td>
-        <td>${new Date(expenseFrom).toDateString()}</td>
-      </tr>
-      <tr>
-        <td><strong>Expense To</strong></td>
-        <td>${new Date(expenseTo).toDateString()}</td>
-      </tr>
-      <tr>
-        <td><strong>Total Reimbursement</strong></td>
-        <td>${totalReimbursement}</td>
-      </tr>
-      <tr>
-        <td><strong>Status</strong></td>
-        <td>${status}</td>
-      </tr>
-    </table>
-  `;
+  <table
+    width="100%"
+    cellpadding="10"
+    cellspacing="0"
+    style="border-collapse:collapse;"
+  >
+    <tr>
+      <td><strong>Employee</strong></td>
+      <td>${employeeName}</td>
+    </tr>
 
+    <tr>
+      <td><strong>Business Purpose</strong></td>
+      <td>${businessPurpose}</td>
+    </tr>
+
+    <tr>
+      <td><strong>Expense From</strong></td>
+      <td>${new Date(expenseFrom).toDateString()}</td>
+    </tr>
+
+    <tr>
+      <td><strong>Expense To</strong></td>
+      <td>${new Date(expenseTo).toDateString()}</td>
+    </tr>
+
+    <tr>
+      <td><strong>Total Amount</strong></td>
+      <td>₹${totalReimbursement}</td>
+    </tr>
+  </table>
+  `
+  );
   await transporter.sendMail({
+    from: mailFrom,
     to,
     subject: "Reimbursement Ready for Payment",
     html,
@@ -203,6 +215,7 @@ export const sendReimbursementRequestEmail = async ({
   `;
 
   await transporter.sendMail({
+    from: mailFrom,
     to,
     subject: "New Reimbursement Request Submitted",
     html,

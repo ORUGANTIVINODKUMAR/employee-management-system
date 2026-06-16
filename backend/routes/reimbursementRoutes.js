@@ -5,9 +5,10 @@ import {
   getMyReimbursementRequests,
 
   getPendingTLReimbursements,
+  getTLReimbursementHistory,
   approveReimbursementByTL,
   rejectReimbursementByTL,
-
+  getManagerReimbursementHistory,
   getPendingManagerReimbursements,
   approveReimbursementByManager,
   rejectReimbursementByManager,
@@ -41,7 +42,11 @@ router.get(
   protect,
   getPendingTLReimbursements
 );
-
+router.get(
+  "/tl/history",
+  protect,
+  getTLReimbursementHistory
+);
 router.put(
   "/tl-approve/:id",
   protect,
@@ -61,7 +66,11 @@ router.get(
   protect,
   getPendingManagerReimbursements
 );
-
+router.get(
+  "/manager/history",
+  protect,
+  getManagerReimbursementHistory
+);
 router.put(
   "/manager-approve/:id",
   protect,
