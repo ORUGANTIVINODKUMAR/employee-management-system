@@ -203,9 +203,11 @@ const AdminSubcategories = () => {
                       <button
                         className="btn btn-secondary"
                         onClick={async () => {
-                          await fetchSubcategories();
+                          const { data } = await api.get("/admin/subcategories");
 
-                          const updated = subcategories.find(
+                          setSubcategories(data.subcategories || []);
+
+                          const updated = data.subcategories.find(
                             (d) => d._id === item._id
                           );
 

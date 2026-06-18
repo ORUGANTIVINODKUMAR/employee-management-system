@@ -11,7 +11,8 @@ const AdminReimbursementReports = () => {
   const [activeFilter, setActiveFilter] = useState("All");
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-
+  const [selectedMonth, setSelectedMonth] = useState("");
+  const [selectedEmployee, setSelectedEmployee] = useState("All");
   const REPORTS_PER_PAGE = 10;
 
   const fetchReports = async () => {
@@ -21,7 +22,7 @@ const AdminReimbursementReports = () => {
     } catch (error) {
       alert(
         error.response?.data?.message ||
-          "Unable to fetch reimbursement reports"
+        "Unable to fetch reimbursement reports"
       );
     }
   };
@@ -29,12 +30,19 @@ const AdminReimbursementReports = () => {
   useEffect(() => {
     fetchReports();
   }, []);
-
+  const employees = [
+    ...new Map(
+      requests
+        .filter((item) => item.employeeId?._id)
+        .map((item) => [
+          item.employeeId._id,
+          item.employeeId,
+        ])
+    ).values(),
+  ];
   const filteredRequests = requests.filter((item) => {
     const matchesFilter =
-      activeFilter === "All"
-        ? true
-        : item.finalStatus === activeFilter;
+      activeFilter === "All" ? true : item.finalStatus === activeFilter;
 
     const search = searchTerm.toLowerCase();
 
@@ -44,7 +52,19 @@ const AdminReimbursementReports = () => {
       item.businessPurpose?.toLowerCase().includes(search) ||
       item.finalStatus?.toLowerCase().includes(search);
 
-    return matchesFilter && matchesSearch;
+    const matchesEmployee =
+      selectedEmployee === "All"
+        ? true
+        : item.employeeId?._id === selectedEmployee;
+
+    const itemMonth = item.createdAt
+      ? new Date(item.createdAt).toISOString().slice(0, 7)
+      : "";
+
+    const matchesMonth =
+      selectedMonth === "" ? true : itemMonth === selectedMonth;
+
+    return matchesFilter && matchesSearch && matchesEmployee && matchesMonth;
   });
 
   const totalPages =
@@ -90,7 +110,10 @@ const AdminReimbursementReports = () => {
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8",
     });
 
-    saveAs(fileData, "Reimbursement_Reports.xlsx");
+    saveAs(
+      fileData,
+      `Reimbursement_Reports${selectedMonth ? `_${selectedMonth}` : ""}.xlsx`
+    );
   };
 
   return (
@@ -126,6 +149,90 @@ const AdminReimbursementReports = () => {
           }}
         />
       </div>
+
+
+
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+          gap: "14px",
+          marginBottom: "18px",
+        }}
+      >
+        <div>
+          <label style={{ fontSize: "13px", fontWeight: "600" }}>
+            Filter by Month
+          </label>
+
+          <input
+            type="month"
+            value={selectedMonth}
+            onChange={(e) => {
+              setSelectedMonth(e.target.value);
+              setCurrentPage(1);
+            }}
+            style={{
+              width: "100%",
+              padding: "12px",
+              borderRadius: "12px",
+              border: "1px solid #d1d5db",
+              fontSize: "14px",
+              marginTop: "6px",
+            }}
+          />
+        </div>
+
+        <div>
+          <label style={{ fontSize: "13px", fontWeight: "600" }}>
+            Filter by Employee
+          </label>
+
+          <select
+            value={selectedEmployee}
+            onChange={(e) => {
+              setSelectedEmployee(e.target.value);
+              setCurrentPage(1);
+            }}
+            style={{
+              width: "100%",
+              padding: "12px",
+              borderRadius: "12px",
+              border: "1px solid #d1d5db",
+              fontSize: "14px",
+              marginTop: "6px",
+            }}
+          >
+            <option value="All">All Employees</option>
+
+            {employees.map((employee) => (
+              <option key={employee._id} value={employee._id}>
+                {employee.name} - {employee.email}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div style={{ display: "flex", alignItems: "end" }}>
+          <button
+            className="btn btn-secondary"
+            onClick={() => {
+              setSelectedMonth("");
+              setSelectedEmployee("All");
+              setSearchTerm("");
+              setActiveFilter("All");
+              setCurrentPage(1);
+            }}
+          >
+            Clear Filters
+          </button>
+        </div>
+      </div>
+
+
+
+
 
       <div className="leave-filter-tabs">
         {[
@@ -227,8 +334,8 @@ const AdminReimbursementReports = () => {
                       ].includes(item.finalStatus)
                         ? "badge badge-success"
                         : item.finalStatus?.includes("Rejected")
-                        ? "badge badge-danger"
-                        : "badge badge-pending"
+                          ? "badge badge-danger"
+                          : "badge badge-pending"
                     }
                   >
                     {item.finalStatus}
@@ -241,8 +348,8 @@ const AdminReimbursementReports = () => {
                       item.financeStatus === "Paid"
                         ? "badge badge-success"
                         : item.financeStatus === "Pending Payment"
-                        ? "badge badge-pending"
-                        : "badge badge-danger"
+                          ? "badge badge-pending"
+                          : "badge badge-danger"
                     }
                   >
                     {item.financeStatus || "Not Routed"}

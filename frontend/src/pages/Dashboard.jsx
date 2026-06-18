@@ -9,7 +9,10 @@ import {
   BadgeCheck,
   Bell,
   Wallet,
+  Menu,
+  X,
 } from "lucide-react";
+
 
 import logo from "../assets/logo.png";
 import { useAuth } from "../context/AuthContext";
@@ -41,7 +44,7 @@ const Dashboard = () => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [notifications, setNotifications] = useState([]);
-
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [showPasswordModal, setShowPasswordModal] =
     useState(false);
 
@@ -103,6 +106,7 @@ const Dashboard = () => {
       onClick={() => {
         setActivePage(key);
         localStorage.setItem("activePage", key);
+        setIsMobileSidebarOpen(false);
       }}
     >
       {icon}
@@ -143,7 +147,35 @@ const Dashboard = () => {
 
   return (
     <div className="dashboard-layout portal-redesign">
-      <aside className="sidebar modern-sidebar">
+      <div className="mobile-topbar">
+        <button
+          className="mobile-menu-btn"
+          onClick={() => setIsMobileSidebarOpen(true)}
+        >
+          <Menu size={24} />
+        </button>
+
+        <img src={logo} alt="Upsilon" />
+
+        <span>{user?.role}</span>
+      </div>
+
+      {isMobileSidebarOpen && (
+        <div
+          className="mobile-sidebar-overlay"
+          onClick={() => setIsMobileSidebarOpen(false)}
+        />
+      )}
+      <aside
+        className={`sidebar modern-sidebar ${isMobileSidebarOpen ? "mobile-sidebar-open" : ""
+          }`}
+      >
+        <button
+          className="mobile-sidebar-close"
+          onClick={() => setIsMobileSidebarOpen(false)}
+        >
+          <X size={22} />
+        </button>
         <div>
           <div
             className="brand-block"
@@ -176,9 +208,9 @@ const Dashboard = () => {
                   className={activePage === "teams" ? "active-menu" : ""}
                   onClick={() => {
                     window.dispatchEvent(new CustomEvent("departments-updated"));
-
                     setActivePage("teams");
                     localStorage.setItem("activePage", "teams");
+                    setIsMobileSidebarOpen(false);
                   }}
                 >
                   <Users size={18} />
@@ -381,13 +413,15 @@ const Dashboard = () => {
               >
                 <div>
                   <span className="eyebrow">
-                    {stats.tomorrowHoliday ? "HOLIDAY ALERT" : "UPCOMING HOLIDAYS"}
+                    {stats.tomorrowHoliday ? "HOLIDAY ALERT" : "UPCOMING HOLIDAY"}
                   </span>
 
                   <h3 style={{ marginTop: "6px" }}>
                     {stats.tomorrowHoliday
                       ? `Tomorrow is ${stats.tomorrowHoliday.name}`
-                      : "Next Holidays"}
+                      : stats.nearestUpcomingHoliday
+                        ? stats.nearestUpcomingHoliday.name
+                        : "No Upcoming Holiday"}
                   </h3>
 
                   {stats.tomorrowHoliday ? (
@@ -404,28 +438,22 @@ const Dashboard = () => {
                         Office closed / holiday configured.
                       </p>
                     </>
+                  ) : stats.nearestUpcomingHoliday ? (
+                    <>
+                      <p style={{ marginTop: "8px" }}>
+                        📅{" "}
+                        {new Date(
+                          stats.nearestUpcomingHoliday.holidayDate
+                        ).toLocaleDateString()}{" "}
+                        • {stats.nearestUpcomingHoliday.type}
+                      </p>
+
+                      <p style={{ color: "#166534", fontWeight: "600" }}>
+                        Nearest upcoming company holiday.
+                      </p>
+                    </>
                   ) : (
-                    <div style={{ marginTop: "12px" }}>
-                      {stats.upcomingHolidays?.length > 0 ? (
-                        stats.upcomingHolidays.map((holiday) => (
-                          <div
-                            key={holiday._id}
-                            style={{
-                              padding: "10px 0",
-                              borderBottom: "1px solid #e5e7eb",
-                            }}
-                          >
-                            <strong>{holiday.name}</strong>
-                            <p style={{ margin: 0 }}>
-                              📅 {new Date(holiday.holidayDate).toLocaleDateString()} •{" "}
-                              {holiday.type}
-                            </p>
-                          </div>
-                        ))
-                      ) : (
-                        <p>No upcoming holidays.</p>
-                      )}
-                    </div>
+                    <p style={{ marginTop: "8px" }}>No upcoming holidays configured.</p>
                   )}
                 </div>
 
@@ -445,7 +473,66 @@ const Dashboard = () => {
                 </div>
               </div>
             </div>
+            {stats.todaysBirthdayEmployees?.length > 0 && (
+              <div
+                className="modern-section-card"
+                style={{
+                  background: "linear-gradient(135deg, #fdf2f8, #ffffff)",
+                  border: "1px solid #fbcfe8",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    gap: "16px",
+                  }}
+                >
+                  <div>
+                    <span className="eyebrow">TODAY'S BIRTHDAYS</span>
 
+                    <h3 style={{ marginTop: "6px" }}>
+                      🎂 Birthday Celebrations
+                    </h3>
+
+                    <div style={{ marginTop: "12px" }}>
+                      {stats.todaysBirthdayEmployees.map((employee) => (
+                        <div
+                          key={employee._id}
+                          style={{
+                            padding: "10px 0",
+                            borderBottom: "1px solid #fce7f3",
+                          }}
+                        >
+                          <strong>{employee.name}</strong>
+
+                          <p style={{ margin: 0, color: "#6b7280" }}>
+                            {employee.designation || employee.role} •{" "}
+                            {employee.employeeId || "N/A"}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      fontSize: "42px",
+                      width: "72px",
+                      height: "72px",
+                      borderRadius: "20px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      background: "#fce7f3",
+                    }}
+                  >
+                    🎂
+                  </div>
+                </div>
+              </div>
+            )}
 
             {["Admin", "HR", "Manager", "TeamLeader"].includes(user?.role) && (
               <div className="modern-section-card">
@@ -624,25 +711,7 @@ const Dashboard = () => {
                       />
                     </div>
 
-                    <div className="balance-row">
-                      <span>Earned</span>
 
-                      <strong>
-                        {stats.leaveBalance?.earned?.remaining ?? 0} /{" "}
-                        {stats.leaveBalance?.earned?.total ?? 0}
-                      </strong>
-                    </div>
-
-                    <div className="balance-bar">
-                      <span
-                        style={{
-                          width: `${((stats.leaveBalance?.earned?.remaining ?? 0) /
-                            ((stats.leaveBalance?.earned?.total ?? 1))
-                          ) * 100
-                            }%`,
-                        }}
-                      />
-                    </div>
                   </div>
                 </div>
 
@@ -1055,7 +1124,7 @@ const Dashboard = () => {
             <FinanceReimbursements />
           </div>
         )}
-        
+
         {activePage === "leaveCalendar" && (
           <div className="modern-section-card">
             <LeaveCalendar />

@@ -3,6 +3,7 @@ import Subcategory from "../models/Subcategory.js";
 import LeaveRequest from "../models/LeaveRequest.js";
 import ReimbursementRequest from "../models/ReimbursementRequest.js";
 import Holiday from "../models/Holiday.js";
+import Notification from "../models/Notification.js";
 
 export const getDashboardStats = async (req, res) => {
   try {
@@ -76,6 +77,12 @@ export const getDashboardStats = async (req, res) => {
         .sort({ startDate: 1 })
       : [];
 
+    const nearestUpcomingHoliday = await Holiday.findOne({
+      holidayDate: {
+        $gte: startOfToday,
+      },
+    }).sort({ holidayDate: 1 });
+
     const tomorrowHoliday = await Holiday.findOne({
       holidayDate: {
         $gte: tomorrow,
@@ -83,14 +90,44 @@ export const getDashboardStats = async (req, res) => {
       },
     }).sort({ holidayDate: 1 });
 
-    const upcomingHolidays = await Holiday.find({
-      holidayDate: {
-        $gte: startOfToday,
-      },
-    })
-      .sort({ holidayDate: 1 })
-      .limit(3);
+    const todayBirthdays = await User.find({
+      isActive: true,
+      role: { $ne: "Admin" },
+      dateOfBirth: { $exists: true, $ne: null },
+    }).select("name email employeeId designation dateOfBirth role");
 
+    const todaysBirthdayEmployees = todayBirthdays.filter((employee) => {
+      const dob = new Date(employee.dateOfBirth);
+
+      return (
+        dob.getDate() === today.getDate() &&
+        dob.getMonth() === today.getMonth()
+      );
+    });
+    for (const employee of todaysBirthdayEmployees) {
+      const startOfYear = new Date(today.getFullYear(), 0, 1);
+      const endOfYear = new Date(today.getFullYear(), 11, 31, 23, 59, 59, 999);
+
+      const existingBirthdayNotification = await Notification.findOne({
+        recipientId: employee._id,
+        type: "System",
+        title: "Happy Birthday 🎂",
+        createdAt: {
+          $gte: startOfYear,
+          $lte: endOfYear,
+        },
+      });
+
+      if (!existingBirthdayNotification) {
+        await Notification.create({
+          recipientId: employee._id,
+          type: "System",
+          title: "Happy Birthday 🎂",
+          message: `Happy Birthday ${employee.name}! Wishing you a wonderful year ahead.`,
+          link: "",
+        });
+      }
+    }
     const pendingTLLeaves = await LeaveRequest.countDocuments({
       teamLeaderId: req.user._id,
       finalStatus: "Pending Final Approval",
@@ -261,12 +298,12 @@ export const getDashboardStats = async (req, res) => {
         teamLeaderTeamCount,
         todayLeaves,
         tomorrowHoliday,
-        upcomingHolidays,
+        nearestUpcomingHoliday,
 
         pendingLeaves,
         approvedLeaves,
         rejectedLeaves,
-
+        todaysBirthdayEmployees,
         pendingTLLeaves,
         pendingManagerLeaves,
 

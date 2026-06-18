@@ -51,7 +51,7 @@ router.put(
   protect,
   approveLeaveByTL
 );
-router.get("/tl-history", protect, getTLApprovalHistory);
+
 router.put(
   "/tl-reject/:id",
   protect,

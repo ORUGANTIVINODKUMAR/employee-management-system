@@ -323,6 +323,7 @@ export const createUser = async (req, res) => {
       subcategoryId,
       teamId,
       managerId,
+      dateOfBirth,
       hrId,
       teamLeaderId,
       assignedTeamIds,
@@ -347,6 +348,7 @@ export const createUser = async (req, res) => {
           "Only @upsilonservices.com email addresses are allowed",
       });
     }
+
     const passwordHash = await bcrypt.hash(password, 10);
 
     const user = await User.create({
@@ -357,6 +359,7 @@ export const createUser = async (req, res) => {
       designation,
       phone,
       dateOfJoining,
+      dateOfBirth,
       email,
       passwordHash,
       role,
@@ -385,6 +388,41 @@ export const createUser = async (req, res) => {
       assignedTeamIds:
         role === "HR" || role === "Manager" ? assignedTeamIds || [] : [],
     });
+
+
+
+
+    if (
+      user.role === "Manager" &&
+      user.assignedTeamIds?.length > 0
+    ) {
+      await Team.updateMany(
+        {
+          _id: { $in: user.assignedTeamIds },
+        },
+        {
+          $addToSet: {
+            managerIds: user._id,
+          },
+        }
+      );
+    }
+
+    if (
+      user.role === "HR" &&
+      user.assignedTeamIds?.length > 0
+    ) {
+      await Team.updateMany(
+        {
+          _id: { $in: user.assignedTeamIds },
+        },
+        {
+          $addToSet: {
+            hrIds: user._id,
+          },
+        }
+      );
+    }
 
 
     res.status(201).json({
@@ -441,6 +479,15 @@ export const deleteUser = async (req, res) => {
       });
     }
 
+    await Team.updateMany(
+      {},
+      {
+        $pull: {
+          managerIds: user._id,
+          hrIds: user._id,
+        },
+      }
+    );
     await User.findByIdAndDelete(req.params.id);
 
     res.status(200).json({
@@ -462,6 +509,7 @@ export const updateUser = async (req, res) => {
       designation,
       phone,
       dateOfJoining,
+      dateOfBirth,
       email,
       role,
       subcategoryId,
@@ -474,7 +522,11 @@ export const updateUser = async (req, res) => {
     } = req.body;
 
     const user = await User.findById(req.params.id);
+    const previousRole = user.role;
 
+    const previousAssignedTeams = [
+      ...(user.assignedTeamIds || []),
+    ].map((id) => id.toString());
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -512,6 +564,7 @@ export const updateUser = async (req, res) => {
     user.designation = designation;
     user.phone = phone;
     user.dateOfJoining = dateOfJoining || user.dateOfJoining;
+    user.dateOfBirth = dateOfBirth || user.dateOfBirth;
     if (email) {
       user.email = email;
     }
@@ -543,6 +596,65 @@ export const updateUser = async (req, res) => {
       role === "HR" || role === "Manager" ? assignedTeamIds || [] : [];
 
     await user.save();
+
+
+    if (previousRole === "Manager") {
+      await Team.updateMany(
+        {},
+        {
+          $pull: {
+            managerIds: user._id,
+          },
+        }
+      );
+    }
+
+    if (previousRole === "HR") {
+      await Team.updateMany(
+        {},
+        {
+          $pull: {
+            hrIds: user._id,
+          },
+        }
+      );
+    }
+
+    if (
+      user.role === "Manager" &&
+      user.assignedTeamIds?.length > 0
+    ) {
+      await Team.updateMany(
+        {
+          _id: {
+            $in: user.assignedTeamIds,
+          },
+        },
+        {
+          $addToSet: {
+            managerIds: user._id,
+          },
+        }
+      );
+    }
+
+    if (
+      user.role === "HR" &&
+      user.assignedTeamIds?.length > 0
+    ) {
+      await Team.updateMany(
+        {
+          _id: {
+            $in: user.assignedTeamIds,
+          },
+        },
+        {
+          $addToSet: {
+            hrIds: user._id,
+          },
+        }
+      );
+    }
 
 
     res.status(200).json({

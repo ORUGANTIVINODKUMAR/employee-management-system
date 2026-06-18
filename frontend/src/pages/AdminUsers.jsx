@@ -30,6 +30,7 @@ const AdminUsers = () => {
     designation: "",
     phone: "",
     dateOfJoining: "",
+    dateOfBirth: "",
     email: "",
     password: "",
     role: "Employee",
@@ -230,6 +231,7 @@ const AdminUsers = () => {
       designation: "",
       phone: "",
       dateOfJoining: "",
+      dateOfBirth: "",
       email: "",
       password: "",
       role: "Employee",
@@ -268,6 +270,10 @@ const AdminUsers = () => {
         setError(
           "Only @upsilonservices.com email addresses are allowed."
         );
+        return;
+      }
+      if (formData.dateOfBirth > today) {
+        setError("Date of birth cannot be a future date.");
         return;
       }
       const payload = {
@@ -336,6 +342,9 @@ const AdminUsers = () => {
       phone: (user.phone || "").replace("+91", ""),
       dateOfJoining: user.dateOfJoining
         ? user.dateOfJoining.split("T")[0]
+        : "",
+      dateOfBirth: user.dateOfBirth
+        ? user.dateOfBirth.split("T")[0]
         : "",
       email: user.email || "",
       password: "",
@@ -671,6 +680,17 @@ const AdminUsers = () => {
                     required
                   />
                 </div>
+                <div className="input-group">
+                  <label>Date of Birth</label>
+                  <input
+                    type="date"
+                    name="dateOfBirth"
+                    value={formData.dateOfBirth}
+                    onChange={handleChange}
+                    max={new Date().toISOString().split("T")[0]}
+                    required
+                  />
+                </div>
               </div>
 
               <div className="grid-2">
@@ -944,7 +964,69 @@ const AdminUsers = () => {
                   </div>
                 </div>
               )}
+              {["Manager", "HR"].includes(formData.role) && (
+                <div className="input-group">
+                  <label>
+                    Assign Teams
+                  </label>
 
+                  <div
+                    style={{
+                      border: "1px solid #d1d5db",
+                      borderRadius: "12px",
+                      padding: "12px",
+                      maxHeight: "220px",
+                      overflowY: "auto",
+                    }}
+                  >
+                    {teams
+                      .filter(
+                        (team) =>
+                          team.departmentId?._id === formData.subcategoryId
+                      )
+                      .map((team) => (
+                        <label
+                          key={team._id}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "10px",
+                            marginBottom: "10px",
+                            cursor: "pointer",
+                          }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={formData.assignedTeamIds.includes(
+                              team._id
+                            )}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setFormData({
+                                  ...formData,
+                                  assignedTeamIds: [
+                                    ...formData.assignedTeamIds,
+                                    team._id,
+                                  ],
+                                });
+                              } else {
+                                setFormData({
+                                  ...formData,
+                                  assignedTeamIds:
+                                    formData.assignedTeamIds.filter(
+                                      (id) => id !== team._id
+                                    ),
+                                });
+                              }
+                            }}
+                          />
+
+                          {team.name}
+                        </label>
+                      ))}
+                  </div>
+                </div>
+              )}
 
               <div
                 style={{

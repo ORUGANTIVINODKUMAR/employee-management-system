@@ -12,7 +12,8 @@ const AdminLeaveReports = () => {
   const [requests, setRequests] = useState([]);
   const [activeFilter, setActiveFilter] =
     useState("All");
-
+  const [selectedMonth, setSelectedMonth] = useState("");
+  const [selectedEmployee, setSelectedEmployee] = useState("All");
   const [searchTerm, setSearchTerm] =
     useState("");
 
@@ -39,33 +40,41 @@ const AdminLeaveReports = () => {
   useEffect(() => {
     fetchReports();
   }, []);
+  const employees = [
+    ...new Map(
+      requests
+        .filter((item) => item.employeeId?._id)
+        .map((item) => [
+          item.employeeId._id,
+          item.employeeId,
+        ])
+    ).values(),
+  ];
+  const filteredRequests = requests.filter((item) => {
+    const matchesFilter =
+      activeFilter === "All" ? true : item.finalStatus === activeFilter;
 
-  const filteredRequests = requests.filter(
-    (item) => {
-      const matchesFilter =
-        activeFilter === "All"
-          ? true
-          : item.finalStatus === activeFilter;
+    const search = searchTerm.toLowerCase();
 
-      const search =
-        searchTerm.toLowerCase();
+    const matchesSearch =
+      item.employeeId?.name?.toLowerCase().includes(search) ||
+      item.employeeId?.email?.toLowerCase().includes(search) ||
+      item.subcategoryId?.name?.toLowerCase().includes(search);
 
-      const matchesSearch =
-        item.employeeId?.name
-          ?.toLowerCase()
-          .includes(search) ||
-        item.employeeId?.email
-          ?.toLowerCase()
-          .includes(search) ||
-        item.subcategoryId?.name
-          ?.toLowerCase()
-          .includes(search);
+    const matchesEmployee =
+      selectedEmployee === "All"
+        ? true
+        : item.employeeId?._id === selectedEmployee;
 
-      return (
-        matchesFilter && matchesSearch
-      );
-    }
-  );
+    const itemMonth = item.startDate
+      ? new Date(item.startDate).toISOString().slice(0, 7)
+      : "";
+
+    const matchesMonth =
+      selectedMonth === "" ? true : itemMonth === selectedMonth;
+
+    return matchesFilter && matchesSearch && matchesEmployee && matchesMonth;
+  });
 
   const totalPages =
     Math.ceil(
@@ -145,7 +154,7 @@ const AdminLeaveReports = () => {
 
     saveAs(
       fileData,
-      "Leave_Reports.xlsx"
+      `Leave_Reports${selectedMonth ? `_${selectedMonth}` : ""}.xlsx`
     );
   };
 
@@ -197,6 +206,88 @@ const AdminLeaveReports = () => {
           }}
         />
       </div>
+
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+          gap: "14px",
+          marginBottom: "18px",
+        }}
+      >
+        <div>
+          <label style={{ fontSize: "13px", fontWeight: "600" }}>
+            Filter by Month
+          </label>
+
+          <input
+            type="month"
+            value={selectedMonth}
+            onChange={(e) => {
+              setSelectedMonth(e.target.value);
+              setCurrentPage(1);
+            }}
+            style={{
+              width: "100%",
+              padding: "12px",
+              borderRadius: "12px",
+              border: "1px solid #d1d5db",
+              fontSize: "14px",
+              marginTop: "6px",
+            }}
+          />
+        </div>
+
+        <div>
+          <label style={{ fontSize: "13px", fontWeight: "600" }}>
+            Filter by Employee
+          </label>
+
+          <select
+            value={selectedEmployee}
+            onChange={(e) => {
+              setSelectedEmployee(e.target.value);
+              setCurrentPage(1);
+            }}
+            style={{
+              width: "100%",
+              padding: "12px",
+              borderRadius: "12px",
+              border: "1px solid #d1d5db",
+              fontSize: "14px",
+              marginTop: "6px",
+            }}
+          >
+            <option value="All">All Employees</option>
+
+            {employees.map((employee) => (
+              <option key={employee._id} value={employee._id}>
+                {employee.name} - {employee.email}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div style={{ display: "flex", alignItems: "end" }}>
+          <button
+            className="btn btn-secondary"
+            onClick={() => {
+              setSelectedMonth("");
+              setSelectedEmployee("All");
+              setSearchTerm("");
+              setActiveFilter("All");
+              setCurrentPage(1);
+            }}
+          >
+            Clear Filters
+          </button>
+        </div>
+      </div>
+
+
+
+
 
       <div className="leave-filter-tabs">
         {[
