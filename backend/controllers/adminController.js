@@ -220,7 +220,8 @@ export const getTeams = async (req, res) => {
       .populate("managerIds", "name email role")
       .populate("hrIds", "name email role")
       .populate("teamLeaderId", "name email role")
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
 
     res.status(200).json({
       success: true,
@@ -440,14 +441,14 @@ export const createUser = async (req, res) => {
 export const getUsers = async (req, res) => {
   try {
     const users = await User.find()
+      .select("-passwordHash")
       .populate("subcategoryId", "name")
       .populate("teamId", "name")
       .populate("managerId", "name email role")
       .populate("hrId", "name email role")
       .populate("teamLeaderId", "name email role")
       .populate("assignedTeamIds", "name")
-      .select("-passwordHash");
-
+      .lean();
 
     res.status(200).json({
       success: true,
@@ -522,18 +523,18 @@ export const updateUser = async (req, res) => {
     } = req.body;
 
     const user = await User.findById(req.params.id);
-    const previousRole = user.role;
 
-    const previousAssignedTeams = [
-      ...(user.assignedTeamIds || []),
-    ].map((id) => id.toString());
     if (!user) {
       return res.status(404).json({
         success: false,
         message: "User not found",
       });
     }
+    const previousRole = user.role;
 
+    const previousAssignedTeams = [
+      ...(user.assignedTeamIds || []),
+    ].map((id) => id.toString());
     if (
       email &&
       !email

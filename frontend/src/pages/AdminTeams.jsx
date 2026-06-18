@@ -51,9 +51,15 @@ const AdminTeams = () => {
   };
 
   useEffect(() => {
-    fetchTeams();
-    fetchDepartments();
-    fetchUsers();
+    const loadData = async () => {
+      await Promise.all([
+        fetchTeams(),
+        fetchDepartments(),
+        fetchUsers(),
+      ]);
+    };
+
+    loadData();
 
     const handleUsersUpdated = () => {
       fetchUsers();
@@ -75,15 +81,7 @@ const AdminTeams = () => {
       "departments-updated",
       handleDepartmentsUpdated
     );
-    window.addEventListener(
-      "focus",
-      handleVisibilityRefresh
-    );
 
-    const interval = setInterval(() => {
-      fetchUsers();
-      fetchTeams();
-    }, 5000);
 
     return () => {
       window.removeEventListener(
@@ -94,12 +92,8 @@ const AdminTeams = () => {
         "departments-updated",
         handleDepartmentsUpdated
       );
-      window.removeEventListener(
-        "focus",
-        handleVisibilityRefresh
-      );
 
-      clearInterval(interval);
+
     };
   }, []);
 

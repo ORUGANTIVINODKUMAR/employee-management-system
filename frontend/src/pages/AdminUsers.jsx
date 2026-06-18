@@ -7,6 +7,8 @@ import api from "../api/api";
 
 const AdminUsers = () => {
   const [users, setUsers] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
   const [activeFilter, setActiveFilter] = useState("All");
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -42,10 +44,7 @@ const AdminUsers = () => {
     assignedTeamIds: [],
   });
 
-  const fetchUsers = async () => {
-    const { data } = await api.get("/admin/users");
-    setUsers(data.users);
-  };
+
 
   const fetchSubcategories = async () => {
     const { data } = await api.get("/admin/subcategories");
@@ -55,37 +54,45 @@ const AdminUsers = () => {
     const { data } = await api.get("/admin/teams");
     setTeams(data.teams || []);
   };
-  const fetchManagersAndTLs = async () => {
-    const { data } = await api.get("/admin/users");
-
+  const processUsers = (usersData) => {
     setManagers(
-      data.users.filter(
-        (u) =>
-          u.role === "Manager" &&
-          u.isActive
+      usersData.filter(
+        (u) => u.role === "Manager" && u.isActive
       )
     );
 
     setHrs(
-      data.users.filter(
-        (u) =>
-          u.role === "HR" &&
-          u.isActive
+      usersData.filter(
+        (u) => u.role === "HR" && u.isActive
       )
     );
 
     setTeamLeaders(
-      data.users.filter(
+      usersData.filter(
         (u) => u.role === "TeamLeader"
       )
     );
   };
+  const fetchUsers = async () => {
+    const { data } = await api.get("/admin/users");
+    setUsers(data.users);
+    processUsers(data.users);
+  };
   useEffect(() => {
     const loadData = async () => {
-      await fetchUsers();
-      await fetchSubcategories();
-      await fetchTeams();
-      await fetchManagersAndTLs();
+      try {
+        setIsLoading(true);
+
+        await Promise.all([
+          fetchUsers(),
+          fetchSubcategories(),
+          fetchTeams(),
+        ]);
+      } catch (error) {
+        console.log(error.response?.data || error.message);
+      } finally {
+        setIsLoading(false);
+      }
     };
 
     loadData();
@@ -300,9 +307,10 @@ const AdminUsers = () => {
         new CustomEvent("users-updated")
       );
 
-      await fetchUsers();
-      await fetchManagersAndTLs();
-      await fetchTeams();
+      await Promise.all([
+        fetchUsers(),
+        fetchTeams(),
+      ]);
 
       resetForm();
       setShowModal(false);
@@ -323,9 +331,10 @@ const AdminUsers = () => {
         new CustomEvent("users-updated")
       );
 
-      await fetchUsers();
-      await fetchManagersAndTLs();
-      await fetchTeams();
+      await Promise.all([
+        fetchUsers(),
+        fetchTeams(),
+      ]);
     } catch (error) {
       alert(error.response?.data?.message || "Delete failed");
     }
@@ -540,7 +549,21 @@ const AdminUsers = () => {
               </tr>
             ))}
 
-            {filteredUsers.length === 0 && (
+            {isLoading && (
+              <tr>
+                <td
+                  colSpan="8"
+                  style={{
+                    textAlign: "center",
+                    padding: "24px",
+                  }}
+                >
+                  Loading users...
+                </td>
+              </tr>
+            )}
+
+            {!isLoading && filteredUsers.length === 0 && (
               <tr>
                 <td
                   colSpan="8"
