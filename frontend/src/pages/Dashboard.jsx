@@ -1020,7 +1020,7 @@ const Dashboard = () => {
           </>
         )}
 
-        {isAdmin && activePage === "departments" && (
+        {isAdmin && (
           <div
             className={`modern-section-card ${activePage === "departments" ? "page-visible" : "page-hidden"
               }`}
@@ -1028,7 +1028,7 @@ const Dashboard = () => {
             <AdminSubcategories />
           </div>
         )}
-        {isAdmin && activePage === "teams" && (
+        {isAdmin && (
           <div
             className={`modern-section-card ${activePage === "teams" ? "page-visible" : "page-hidden"
               }`}
@@ -1036,8 +1036,11 @@ const Dashboard = () => {
             <AdminTeams />
           </div>
         )}
-        {isAdmin && activePage === "users" && (
-          <div className="modern-section-card">
+        {isAdmin && (
+          <div
+            className={`modern-section-card ${activePage === "users" ? "page-visible" : "page-hidden"
+              }`}
+          >
             <AdminUsers />
           </div>
         )}
@@ -1090,7 +1093,7 @@ const Dashboard = () => {
           </div>
         )}
 
-        {isAdmin && activePage === "leaveReports" && (
+        {isAdmin && (
           <div
             className={`modern-section-card ${activePage === "leaveReports" ? "page-visible" : "page-hidden"
               }`}
@@ -1099,7 +1102,7 @@ const Dashboard = () => {
           </div>
         )}
 
-        {isAdmin && activePage === "reimbursementReports" && (
+        {isAdmin && (
           <div
             className={`modern-section-card ${activePage === "reimbursementReports"
               ? "page-visible"
