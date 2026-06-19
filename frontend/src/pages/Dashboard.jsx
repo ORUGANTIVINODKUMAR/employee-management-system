@@ -207,7 +207,6 @@ const Dashboard = () => {
                 <button
                   className={activePage === "teams" ? "active-menu" : ""}
                   onClick={() => {
-                    window.dispatchEvent(new CustomEvent("departments-updated"));
                     setActivePage("teams");
                     localStorage.setItem("activePage", "teams");
                     setIsMobileSidebarOpen(false);
@@ -1021,7 +1020,7 @@ const Dashboard = () => {
           </>
         )}
 
-        {isAdmin && (
+        {isAdmin && activePage === "departments" && (
           <div
             className={`modern-section-card ${activePage === "departments" ? "page-visible" : "page-hidden"
               }`}
@@ -1029,7 +1028,7 @@ const Dashboard = () => {
             <AdminSubcategories />
           </div>
         )}
-        {isAdmin && (
+        {isAdmin && activePage === "teams" && (
           <div
             className={`modern-section-card ${activePage === "teams" ? "page-visible" : "page-hidden"
               }`}
@@ -1037,11 +1036,8 @@ const Dashboard = () => {
             <AdminTeams />
           </div>
         )}
-        {isAdmin && (
-          <div
-            className={`modern-section-card ${activePage === "users" ? "page-visible" : "page-hidden"
-              }`}
-          >
+        {isAdmin && activePage === "users" && (
+          <div className="modern-section-card">
             <AdminUsers />
           </div>
         )}
@@ -1094,7 +1090,7 @@ const Dashboard = () => {
           </div>
         )}
 
-        {isAdmin && (
+        {isAdmin && activePage === "leaveReports" && (
           <div
             className={`modern-section-card ${activePage === "leaveReports" ? "page-visible" : "page-hidden"
               }`}
@@ -1103,7 +1099,7 @@ const Dashboard = () => {
           </div>
         )}
 
-        {isAdmin && (
+        {isAdmin && activePage === "reimbursementReports" && (
           <div
             className={`modern-section-card ${activePage === "reimbursementReports"
               ? "page-visible"

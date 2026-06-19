@@ -51,7 +51,8 @@ export const getHolidays = async (req, res) => {
   try {
     const holidays = await Holiday.find({})
       .populate("createdBy", "name role")
-      .sort({ holidayDate: 1 });
+      .sort({ holidayDate: 1 })
+      .lean();
 
     res.status(200).json({
       success: true,

@@ -66,10 +66,6 @@ const AdminTeams = () => {
       fetchTeams();
     };
 
-    const handleVisibilityRefresh = () => {
-      fetchUsers();
-      fetchTeams();
-    };
     const handleDepartmentsUpdated = () => {
       fetchDepartments();
     };
@@ -142,9 +138,11 @@ const AdminTeams = () => {
         await api.post("/admin/teams", formData);
       }
 
-      await fetchTeams();
-      await fetchUsers();
-      await fetchDepartments();
+      await Promise.all([
+        fetchTeams(),
+        fetchUsers(),
+        fetchDepartments(),
+      ]);
 
       window.dispatchEvent(
         new CustomEvent("teams-updated")
@@ -171,8 +169,10 @@ const AdminTeams = () => {
 
     try {
       await api.delete(`/admin/teams/${id}`);
-      await fetchTeams();
-      await fetchDepartments();
+      await Promise.all([
+        fetchTeams(),
+        fetchDepartments(),
+      ]);
 
       window.dispatchEvent(
         new CustomEvent("teams-updated")

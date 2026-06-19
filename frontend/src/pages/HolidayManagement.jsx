@@ -14,6 +14,8 @@ const HolidayManagement = () => {
   const { user } = useAuth();
 
   const [holidays, setHolidays] = useState([]);
+  const [loading, setLoading] = useState(true);
+
   const [showModal, setShowModal] = useState(false);
 
   const canManageHolidays = ["Admin", "Manager", "HR"].includes(user?.role);
@@ -25,14 +27,21 @@ const HolidayManagement = () => {
     description: "",
   });
 
+
   const fetchHolidays = async () => {
     try {
+      setLoading(true);
+
       const { data } = await api.get("/holidays");
+
       setHolidays(data.holidays || []);
     } catch (error) {
       alert(error.response?.data?.message || "Unable to fetch holidays");
+    } finally {
+      setLoading(false);
     }
   };
+
 
   useEffect(() => {
     fetchHolidays();
@@ -118,6 +127,14 @@ const HolidayManagement = () => {
 
   const nextHoliday = upcomingHolidays[0];
 
+  if (loading) {
+    return (
+      <div className="modern-section-card">
+        Loading holidays...
+      </div>
+    );
+  }
+  
   return (
     <>
       <div className="section-header">

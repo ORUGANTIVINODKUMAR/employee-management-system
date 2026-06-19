@@ -11,6 +11,7 @@ const holidaySchema = new mongoose.Schema(
     holidayDate: {
       type: Date,
       required: true,
+      index: true,
     },
 
     type: {
