@@ -90,11 +90,7 @@ export const getDashboardStats = async (req, res) => {
       },
     }).sort({ holidayDate: 1 });
 
-    const todayBirthdays = await User.find({
-      isActive: true,
-      role: { $ne: "Admin" },
-      dateOfBirth: { $exists: true, $ne: null },
-    }).select("name email employeeId designation dateOfBirth role");
+
 
     const todaysBirthdayEmployees = todayBirthdays.filter((employee) => {
       const dob = new Date(employee.dateOfBirth);
@@ -104,30 +100,7 @@ export const getDashboardStats = async (req, res) => {
         dob.getMonth() === today.getMonth()
       );
     });
-    for (const employee of todaysBirthdayEmployees) {
-      const startOfYear = new Date(today.getFullYear(), 0, 1);
-      const endOfYear = new Date(today.getFullYear(), 11, 31, 23, 59, 59, 999);
-
-      const existingBirthdayNotification = await Notification.findOne({
-        recipientId: employee._id,
-        type: "System",
-        title: "Happy Birthday 🎂",
-        createdAt: {
-          $gte: startOfYear,
-          $lte: endOfYear,
-        },
-      });
-
-      if (!existingBirthdayNotification) {
-        await Notification.create({
-          recipientId: employee._id,
-          type: "System",
-          title: "Happy Birthday 🎂",
-          message: `Happy Birthday ${employee.name}! Wishing you a wonderful year ahead.`,
-          link: "",
-        });
-      }
-    }
+    
     const pendingTLLeaves = await LeaveRequest.countDocuments({
       teamLeaderId: req.user._id,
       finalStatus: "Pending Final Approval",
