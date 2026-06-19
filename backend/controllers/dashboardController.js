@@ -91,15 +91,8 @@ export const getDashboardStats = async (req, res) => {
     }).sort({ holidayDate: 1 });
 
 
-
-    const todaysBirthdayEmployees = todayBirthdays.filter((employee) => {
-      const dob = new Date(employee.dateOfBirth);
-
-      return (
-        dob.getDate() === today.getDate() &&
-        dob.getMonth() === today.getMonth()
-      );
-    });
+    
+    const todaysBirthdayEmployees = [];
     
     const pendingTLLeaves = await LeaveRequest.countDocuments({
       teamLeaderId: req.user._id,
