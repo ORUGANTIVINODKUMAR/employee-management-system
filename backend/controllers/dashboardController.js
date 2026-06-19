@@ -7,26 +7,7 @@ import Notification from "../models/Notification.js";
 
 export const getDashboardStats = async (req, res) => {
   try {
-    const totalEmployees = await User.countDocuments({
-      role: { $ne: "Admin" },
-    });
-    const managerTeamCount =
-      req.user.role === "Manager"
-        ? await User.countDocuments({
-          managerId: req.user._id,
-          isActive: true,
-        })
-        : 0;
-
-    const teamLeaderTeamCount =
-      req.user.role === "TeamLeader"
-        ? await User.countDocuments({
-          teamLeaderId: req.user._id,
-          isActive: true,
-        })
-        : 0;
-    const departments = await Subcategory.countDocuments();
-
+    console.time("dashboard-stats");
     const today = new Date();
 
     const startOfToday = new Date(
@@ -67,34 +48,226 @@ export const getDashboardStats = async (req, res) => {
       leaveFilter.managerId = req.user._id;
     }
 
-    const todayLeaves = ["Admin", "HR", "Manager", "TeamLeader"].includes(
+    const managerTeamQuery =
+      req.user.role === "Manager"
+        ? User.countDocuments({
+            managerId: req.user._id,
+            isActive: true,
+          })
+        : Promise.resolve(0);
+
+    const teamLeaderTeamQuery =
+      req.user.role === "TeamLeader"
+        ? User.countDocuments({
+            teamLeaderId: req.user._id,
+            isActive: true,
+          })
+        : Promise.resolve(0);
+
+    const todayLeavesQuery = ["Admin", "HR", "Manager", "TeamLeader"].includes(
       req.user.role
     )
-      ? await LeaveRequest.find(leaveFilter)
-        .populate("employeeId", "name email employeeId designation role")
-        .populate("subcategoryId", "name")
-        .populate("teamId", "name")
-        .sort({ startDate: 1 })
-      : [];
+      ? LeaveRequest.find(leaveFilter)
+          .populate("employeeId", "name email employeeId designation role")
+          .populate("subcategoryId", "name")
+          .populate("teamId", "name")
+          .sort({ startDate: 1 })
+          .lean()
+      : Promise.resolve([]);
 
-    const nearestUpcomingHoliday = await Holiday.findOne({
-      holidayDate: {
-        $gte: startOfToday,
-      },
-    }).sort({ holidayDate: 1 });
+    const pendingManagerLeavesQuery =
+      req.user.role === "HR"
+        ? LeaveRequest.countDocuments({
+            finalStatus: "Pending Final Approval",
+          })
+        : LeaveRequest.countDocuments({
+            managerId: req.user._id,
+            finalStatus: "Pending Final Approval",
+          });
 
-    const tomorrowHoliday = await Holiday.findOne({
-      holidayDate: {
-        $gte: tomorrow,
-        $lte: endOfTomorrow,
-      },
-    }).sort({ holidayDate: 1 });
+    const pendingManagerReimbursementsQuery =
+      req.user.role === "HR"
+        ? ReimbursementRequest.countDocuments({
+            finalStatus: "Pending Final Approval",
+          })
+        : ReimbursementRequest.countDocuments({
+            managerId: req.user._id,
+            finalStatus: "Pending Final Approval",
+          });
 
-    const todayBirthdays = await User.find({
-      isActive: true,
-      role: { $ne: "Admin" },
-      dateOfBirth: { $exists: true, $ne: null },
-    }).select("name email employeeId designation dateOfBirth role");
+    const [
+      totalEmployees,
+      departments,
+      managerTeamCount,
+      teamLeaderTeamCount,
+      todayLeaves,
+      nearestUpcomingHoliday,
+      tomorrowHoliday,
+
+      pendingTLLeaves,
+      pendingManagerLeaves,
+      pendingLeaves,
+      approvedLeaves,
+      rejectedLeaves,
+
+      pendingTLReimbursements,
+      pendingManagerReimbursements,
+      pendingReimbursements,
+      approvedReimbursements,
+      paidReimbursements,
+
+      myLeaves,
+      myPendingLeaves,
+      myApprovedLeaves,
+      myRejectedLeaves,
+
+      myReimbursements,
+      myPendingReimbursements,
+      myApprovedReimbursements,
+      myRejectedReimbursements,
+
+      approvedMyLeaves,
+      todayBirthdays,
+    ] = await Promise.all([
+      User.countDocuments({
+        role: { $ne: "Admin" },
+      }),
+
+      Subcategory.countDocuments(),
+
+      managerTeamQuery,
+
+      teamLeaderTeamQuery,
+
+      todayLeavesQuery,
+
+      Holiday.findOne({
+        holidayDate: {
+          $gte: startOfToday,
+        },
+      })
+        .sort({ holidayDate: 1 })
+        .lean(),
+
+      Holiday.findOne({
+        holidayDate: {
+          $gte: tomorrow,
+          $lte: endOfTomorrow,
+        },
+      })
+        .sort({ holidayDate: 1 })
+        .lean(),
+
+      LeaveRequest.countDocuments({
+        teamLeaderId: req.user._id,
+        finalStatus: "Pending Final Approval",
+        tlStatus: "Pending",
+      }),
+
+      pendingManagerLeavesQuery,
+
+      LeaveRequest.countDocuments({
+        finalStatus: "Pending Final Approval",
+      }),
+
+      LeaveRequest.countDocuments({
+        finalStatus: {
+          $in: ["Approved by Manager", "Approved by HR"],
+        },
+      }),
+
+      LeaveRequest.countDocuments({
+        finalStatus: {
+          $in: ["Rejected by Manager", "Rejected by HR"],
+        },
+      }),
+
+      ReimbursementRequest.countDocuments({
+        teamLeaderId: req.user._id,
+        finalStatus: "Pending Final Approval",
+        tlStatus: "Pending",
+      }),
+
+      pendingManagerReimbursementsQuery,
+
+      ReimbursementRequest.countDocuments({
+        finalStatus: "Pending Final Approval",
+      }),
+
+      ReimbursementRequest.countDocuments({
+        finalStatus: {
+          $in: ["Approved by Manager", "Approved by HR"],
+        },
+        financeStatus: "Pending Payment",
+      }),
+
+      ReimbursementRequest.countDocuments({
+        finalStatus: "Paid by Finance",
+      }),
+
+      LeaveRequest.countDocuments({
+        employeeId: req.user._id,
+      }),
+
+      LeaveRequest.countDocuments({
+        employeeId: req.user._id,
+        finalStatus: "Pending Final Approval",
+      }),
+
+      LeaveRequest.countDocuments({
+        employeeId: req.user._id,
+        finalStatus: {
+          $in: ["Approved by Manager", "Approved by HR"],
+        },
+      }),
+
+      LeaveRequest.countDocuments({
+        employeeId: req.user._id,
+        finalStatus: {
+          $in: ["Rejected by Manager", "Rejected by HR"],
+        },
+      }),
+
+      ReimbursementRequest.countDocuments({
+        employeeId: req.user._id,
+      }),
+
+      ReimbursementRequest.countDocuments({
+        employeeId: req.user._id,
+        finalStatus: "Pending Final Approval",
+      }),
+
+      ReimbursementRequest.countDocuments({
+        employeeId: req.user._id,
+        finalStatus: {
+          $in: ["Approved by Manager", "Approved by HR", "Paid by Finance"],
+        },
+      }),
+
+      ReimbursementRequest.countDocuments({
+        employeeId: req.user._id,
+        finalStatus: {
+          $in: ["Rejected by Manager", "Rejected by HR"],
+        },
+      }),
+
+      LeaveRequest.find({
+        employeeId: req.user._id,
+        finalStatus: {
+          $in: ["Approved by Manager", "Approved by HR"],
+        },
+      })
+        .select("leaveType workingDays")
+        .lean(),
+
+      User.find({
+        isActive: true,
+        role: { $ne: "Admin" },
+        dateOfBirth: { $exists: true, $ne: null },
+      })
+        .select("name email employeeId designation dateOfBirth role")
+        .lean(),
+    ]);
 
     const todaysBirthdayEmployees = todayBirthdays.filter((employee) => {
       const dob = new Date(employee.dateOfBirth);
@@ -103,153 +276,6 @@ export const getDashboardStats = async (req, res) => {
         dob.getDate() === today.getDate() &&
         dob.getMonth() === today.getMonth()
       );
-    });
-    for (const employee of todaysBirthdayEmployees) {
-      const startOfYear = new Date(today.getFullYear(), 0, 1);
-      const endOfYear = new Date(today.getFullYear(), 11, 31, 23, 59, 59, 999);
-
-      const existingBirthdayNotification = await Notification.findOne({
-        recipientId: employee._id,
-        type: "System",
-        title: "Happy Birthday 🎂",
-        createdAt: {
-          $gte: startOfYear,
-          $lte: endOfYear,
-        },
-      });
-
-      if (!existingBirthdayNotification) {
-        await Notification.create({
-          recipientId: employee._id,
-          type: "System",
-          title: "Happy Birthday 🎂",
-          message: `Happy Birthday ${employee.name}! Wishing you a wonderful year ahead.`,
-          link: "",
-        });
-      }
-    }
-    const pendingTLLeaves = await LeaveRequest.countDocuments({
-      teamLeaderId: req.user._id,
-      finalStatus: "Pending Final Approval",
-      tlStatus: "Pending",
-    });
-
-    const pendingManagerLeaves =
-      req.user.role === "HR"
-        ? await LeaveRequest.countDocuments({
-          finalStatus: "Pending Final Approval",
-        })
-        : await LeaveRequest.countDocuments({
-          managerId: req.user._id,
-          finalStatus: "Pending Final Approval",
-        });
-
-    const pendingLeaves = await LeaveRequest.countDocuments({
-      finalStatus: "Pending Final Approval",
-    });
-
-    const approvedLeaves = await LeaveRequest.countDocuments({
-      finalStatus: {
-        $in: ["Approved by Manager", "Approved by HR"],
-      },
-    });
-
-    const rejectedLeaves = await LeaveRequest.countDocuments({
-      finalStatus: {
-        $in: ["Rejected by Manager", "Rejected by HR"],
-      },
-    });
-
-    const pendingTLReimbursements =
-      await ReimbursementRequest.countDocuments({
-        teamLeaderId: req.user._id,
-        finalStatus: "Pending Final Approval",
-        tlStatus: "Pending",
-      });
-
-    const pendingManagerReimbursements =
-      req.user.role === "HR"
-        ? await ReimbursementRequest.countDocuments({
-          finalStatus: "Pending Final Approval",
-        })
-        : await ReimbursementRequest.countDocuments({
-          managerId: req.user._id,
-          finalStatus: "Pending Final Approval",
-        });
-
-    const pendingReimbursements =
-      await ReimbursementRequest.countDocuments({
-        finalStatus: "Pending Final Approval",
-      });
-
-    const approvedReimbursements =
-      await ReimbursementRequest.countDocuments({
-        finalStatus: {
-          $in: ["Approved by Manager", "Approved by HR"],
-        },
-        financeStatus: "Pending Payment",
-      });
-
-    const paidReimbursements =
-      await ReimbursementRequest.countDocuments({
-        finalStatus: "Paid by Finance",
-      });
-
-    const myLeaves = await LeaveRequest.countDocuments({
-      employeeId: req.user._id,
-    });
-
-    const myPendingLeaves = await LeaveRequest.countDocuments({
-      employeeId: req.user._id,
-      finalStatus: "Pending Final Approval",
-    });
-
-    const myApprovedLeaves = await LeaveRequest.countDocuments({
-      employeeId: req.user._id,
-      finalStatus: {
-        $in: ["Approved by Manager", "Approved by HR"],
-      },
-    });
-
-    const myRejectedLeaves = await LeaveRequest.countDocuments({
-      employeeId: req.user._id,
-      finalStatus: {
-        $in: ["Rejected by Manager", "Rejected by HR"],
-      },
-    });
-
-    const myReimbursements =
-      await ReimbursementRequest.countDocuments({
-        employeeId: req.user._id,
-      });
-
-    const myPendingReimbursements =
-      await ReimbursementRequest.countDocuments({
-        employeeId: req.user._id,
-        finalStatus: "Pending Final Approval",
-      });
-
-    const myApprovedReimbursements =
-      await ReimbursementRequest.countDocuments({
-        employeeId: req.user._id,
-        finalStatus: {
-          $in: ["Approved by Manager", "Approved by HR", "Paid by Finance"],
-        },
-      });
-
-    const myRejectedReimbursements =
-      await ReimbursementRequest.countDocuments({
-        employeeId: req.user._id,
-        finalStatus: {
-          $in: ["Rejected by Manager", "Rejected by HR"],
-        },
-      });
-
-    const approvedMyLeaves = await LeaveRequest.find({
-      employeeId: req.user._id,
-      finalStatus: {
-        $in: ["Approved by Manager", "Approved by HR"],
-      },
     });
 
     const yearlyCasualTotal = 20;
@@ -288,7 +314,7 @@ export const getDashboardStats = async (req, res) => {
         remaining: yearlyEarnedTotal,
       },
     };
-
+    console.time("dashboard-stats");
     res.status(200).json({
       success: true,
       stats: {
