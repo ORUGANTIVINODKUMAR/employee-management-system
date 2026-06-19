@@ -19,6 +19,9 @@ export const AuthProvider = ({ children }) => {
       const { data } = await api.get("/auth/me");
       setUser(data.user);
     } catch (error) {
+      if (error.response?.status !== 401) {
+        console.error(error);
+      }
       setUser(null);
     } finally {
       setLoading(false);

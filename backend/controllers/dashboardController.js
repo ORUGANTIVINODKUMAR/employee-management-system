@@ -314,7 +314,7 @@ export const getDashboardStats = async (req, res) => {
         remaining: yearlyEarnedTotal,
       },
     };
-    console.time("dashboard-stats");
+    console.timeEnd("dashboard-stats");
     res.status(200).json({
       success: true,
       stats: {
