@@ -1,6 +1,7 @@
 import ReimbursementRequest from "../models/ReimbursementRequest.js";
 import User from "../models/User.js";
 import { createNotification } from "../services/notificationService.js";
+import Team from "../models/Team.js";
 import {
   sendDecisionEmail,
   sendFinanceReimbursementEmail,
@@ -22,17 +23,39 @@ export const createReimbursementRequest = async (req, res) => {
     const parsedItems = typeof items === "string" ? JSON.parse(items) : items;
     const uploadedReceiptFiles = req.files?.map((file) => file.path) || [];
 
-    const employee = await User.findById(req.user._id)
-      .populate("teamLeaderId", "name email role")
-      .populate("managerId", "name email role");
+    const employee = await User.findById(req.user._id);
 
-    if (
-      req.user.role !== "TeamLeader" &&
-      !employee?.teamLeaderId
-    ) {
+    const team = employee.teamId
+      ? await Team.findById(employee.teamId)
+        .populate("teamLeaderId", "name email role")
+        .populate("managerIds", "name email role")
+        .populate("hrIds", "name email role")
+      : null;
+
+    if (!team) {
       return res.status(400).json({
         success: false,
-        message: "No Team Leader assigned. Please contact Admin.",
+        message: "User is not assigned to any team",
+      });
+    }
+
+    const assignedTeamLeader =
+      req.user.role === "TeamLeader" ? null : team.teamLeaderId;
+
+    const assignedManager =
+      team.managerIds?.length > 0 ? team.managerIds[0] : null;
+
+    if (req.user.role !== "TeamLeader" && !assignedTeamLeader) {
+      return res.status(400).json({
+        success: false,
+        message: "No Team Leader assigned for this team",
+      });
+    }
+
+    if (!assignedManager) {
+      return res.status(400).json({
+        success: false,
+        message: "No Manager assigned for this team",
       });
     }
 
@@ -41,9 +64,9 @@ export const createReimbursementRequest = async (req, res) => {
       teamLeaderId:
         req.user.role === "TeamLeader"
           ? null
-          : employee.teamLeaderId?._id,
+          : assignedTeamLeader?._id,
 
-      managerId: employee.managerId?._id || null,
+      managerId: assignedManager?._id || null,
 
       tlStatus:
         req.user.role === "TeamLeader"
@@ -81,8 +104,8 @@ export const createReimbursementRequest = async (req, res) => {
     });
 
     const notifyUsers = [
-      employee.teamLeaderId,
-      employee.managerId,
+      assignedTeamLeader,
+      assignedManager,
       ...hrUsers,
     ].filter(Boolean);
 

@@ -1,6 +1,7 @@
 import LeaveRequest from "../models/LeaveRequest.js";
 import User from "../models/User.js";
 import Holiday from "../models/Holiday.js";
+import Team from "../models/Team.js";
 import { createNotification } from "../services/notificationService.js";
 import {
   sendDecisionEmail,
@@ -48,17 +49,39 @@ export const createLeaveRequest = async (req, res) => {
       });
     }
 
-    const employee = await User.findById(req.user._id)
-      .populate("teamLeaderId", "name email role")
-      .populate("managerId", "name email role");
+    const employee = await User.findById(req.user._id);
 
-    if (
-      req.user.role !== "TeamLeader" &&
-      !employee.teamLeaderId
-    ) {
+    const team = employee.teamId
+      ? await Team.findById(employee.teamId)
+        .populate("teamLeaderId", "name email role")
+        .populate("managerIds", "name email role")
+        .populate("hrIds", "name email role")
+      : null;
+
+    if (!team) {
       return res.status(400).json({
         success: false,
-        message: "No Team Leader assigned",
+        message: "User is not assigned to any team",
+      });
+    }
+
+    const assignedTeamLeader =
+      req.user.role === "TeamLeader" ? null : team.teamLeaderId;
+
+    const assignedManager =
+      team.managerIds?.length > 0 ? team.managerIds[0] : null;
+
+    if (req.user.role !== "TeamLeader" && !assignedTeamLeader) {
+      return res.status(400).json({
+        success: false,
+        message: "No Team Leader assigned for this team",
+      });
+    }
+
+    if (!assignedManager) {
+      return res.status(400).json({
+        success: false,
+        message: "No Manager assigned for this team",
       });
     }
 
@@ -75,8 +98,12 @@ export const createLeaveRequest = async (req, res) => {
       employeeId: req.user._id,
       subcategoryId: req.user.subcategoryId,
       teamId: req.user.teamId || null,
-      teamLeaderId: employee.teamLeaderId._id,
-      managerId: employee.managerId?._id || null,
+      teamLeaderId:
+        req.user.role === "TeamLeader"
+          ? null
+          : assignedTeamLeader?._id,
+
+      managerId: assignedManager?._id || null,
       leaveType,
       startDate,
       endDate,
@@ -84,7 +111,10 @@ export const createLeaveRequest = async (req, res) => {
       leaveExplanation: leaveExplanation || "",
       workingDays,
       proofFile: req.file ? req.file.path : "",
-      tlStatus: "Pending",
+      tlStatus:
+        req.user.role === "TeamLeader"
+          ? "Approved"
+          : "Pending",
       managerStatus: "Pending",
       hrStatus: "Pending",
       finalStatus: "Pending Final Approval",
@@ -103,8 +133,8 @@ export const createLeaveRequest = async (req, res) => {
     });
 
     const notificationUsers = [
-      employee.teamLeaderId,
-      employee.managerId,
+      assignedTeamLeader,
+      assignedManager,
       ...hrUsers,
     ].filter(Boolean);
 
@@ -224,15 +254,9 @@ export const getPendingTLRequests = async (req, res) => {
     }
 
     const leaveRequests = await LeaveRequest.find({
-      teamLeaderId:
-        req.user.role === "TeamLeader"
-          ? null
-          : employee.teamLeaderId?._id,
+      teamLeaderId: req.user._id,
       finalStatus: "Pending Final Approval",
-      tlStatus:
-        req.user.role === "TeamLeader"
-          ? "Approved"
-          : "Pending",
+      tlStatus: "Pending",
     })
       .populate("employeeId", "name email employeeId designation")
       .populate("subcategoryId", "name")
