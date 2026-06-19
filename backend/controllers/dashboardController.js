@@ -3,11 +3,12 @@ import Subcategory from "../models/Subcategory.js";
 import LeaveRequest from "../models/LeaveRequest.js";
 import ReimbursementRequest from "../models/ReimbursementRequest.js";
 import Holiday from "../models/Holiday.js";
-import Notification from "../models/Notification.js";
+import Team from "../models/Team.js";
 
 export const getDashboardStats = async (req, res) => {
   try {
     console.time("dashboard-stats");
+
     const today = new Date();
 
     const startOfToday = new Date(
@@ -128,6 +129,16 @@ export const getDashboardStats = async (req, res) => {
 
       approvedMyLeaves,
       todayBirthdays,
+
+      tlTeams,
+      managerTeams,
+      managerEmployees,
+      teamMembers,
+
+      totalManagers,
+      totalTeamLeaders,
+      totalHRs,
+      totalFinance,
     ] = await Promise.all([
       User.countDocuments({
         role: { $ne: "Admin" },
@@ -267,6 +278,55 @@ export const getDashboardStats = async (req, res) => {
       })
         .select("name email employeeId designation dateOfBirth role")
         .lean(),
+
+      Team.find({
+        teamLeaderId: req.user._id,
+      })
+        .populate("departmentId", "name")
+        .lean(),
+
+      Team.find({
+        managerIds: req.user._id,
+      })
+        .populate("departmentId", "name")
+        .populate("teamLeaderId", "name email employeeId designation")
+        .lean(),
+
+      User.find({
+        managerId: req.user._id,
+        isActive: true,
+      })
+        .select("name email employeeId designation role teamId")
+        .populate("teamId", "name")
+        .lean(),
+
+      User.find({
+        teamLeaderId: req.user._id,
+        isActive: true,
+      })
+        .select("name email employeeId designation role teamId")
+        .populate("teamId", "name")
+        .lean(),
+
+      User.countDocuments({
+        role: "Manager",
+        isActive: true,
+      }),
+
+      User.countDocuments({
+        role: "TeamLeader",
+        isActive: true,
+      }),
+
+      User.countDocuments({
+        role: "HR",
+        isActive: true,
+      }),
+
+      User.countDocuments({
+        role: "Finance",
+        isActive: true,
+      }),
     ]);
 
     const todaysBirthdayEmployees = todayBirthdays.filter((employee) => {
@@ -314,7 +374,35 @@ export const getDashboardStats = async (req, res) => {
         remaining: yearlyEarnedTotal,
       },
     };
+
+    const managerTeamsWithCounts = managerTeams.map((team) => {
+      const employeesInTeam = managerEmployees.filter(
+        (employee) =>
+          employee.teamId?._id?.toString() === team._id.toString()
+      );
+
+      return {
+        ...team,
+        employeeCount: employeesInTeam.length,
+        employees: employeesInTeam,
+      };
+    });
+
+    const tlTeamsWithCounts = tlTeams.map((team) => {
+      const employeesInTeam = teamMembers.filter(
+        (employee) =>
+          employee.teamId?._id?.toString() === team._id.toString()
+      );
+
+      return {
+        ...team,
+        employeeCount: employeesInTeam.length,
+        employees: employeesInTeam,
+      };
+    });
+
     console.timeEnd("dashboard-stats");
+
     res.status(200).json({
       success: true,
       stats: {
@@ -350,6 +438,16 @@ export const getDashboardStats = async (req, res) => {
         myRejectedReimbursements,
 
         leaveBalance,
+
+        tlTeams: tlTeamsWithCounts,
+        managerTeams: managerTeamsWithCounts,
+        managerEmployees,
+        teamMembers,
+
+        totalManagers,
+        totalTeamLeaders,
+        totalHRs,
+        totalFinance,
       },
     });
   } catch (error) {

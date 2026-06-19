@@ -305,13 +305,17 @@ const AdminSubcategories = () => {
 
                     <div className="team-card-body">
                       <p>
-                        👨 <strong>Manager:</strong>{" "}
-                        {team.manager?.name || "Not Assigned"}
+                        👨/👩 <strong>Manager:</strong>{" "}
+                        {team.managers?.length > 0
+                          ? team.managers.map((m) => m.name).join(", ")
+                          : "Not Assigned"}
                       </p>
 
                       <p>
-                        👩 <strong>HR:</strong>{" "}
-                        {team.hr?.name || "Not Assigned"}
+                        👨/👩 <strong>HR:</strong>{" "}
+                        {team.hrs?.length > 0
+                          ? team.hrs.map((h) => h.name).join(", ")
+                          : "Not Assigned"}
                       </p>
 
                       <p>

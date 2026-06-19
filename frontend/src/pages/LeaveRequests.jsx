@@ -440,19 +440,21 @@ const LeaveRequests = () => {
                       {item.finalStatus}
                     </span>
                   </td>
-                  <div>
+                  <td>
                     <div>
-                      TL: {item.tlStatus}
-                    </div>
+                      <div>
+                        TL: {item.tlStatus}
+                      </div>
 
-                    <div>
-                      Manager: {item.managerStatus}
-                    </div>
+                      <div>
+                        Manager: {item.managerStatus}
+                      </div>
 
-                    <div>
-                      HR: {item.hrStatus}
+                      <div>
+                        HR: {item.hrStatus}
+                      </div>
                     </div>
-                  </div>
+                  </td>
                   <td>
                     {item.rejectionReason ? (
                       <button

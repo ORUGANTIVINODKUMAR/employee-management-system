@@ -93,7 +93,7 @@ export const getSubcategories = async (req, res) => {
         ...new Map(
           departmentTeams
             .map((team) => team.teamLeaderId)
-            .filter(Boolean)
+            .filter((tl) => tl && tl.role === "TeamLeader")
             .map((tl) => [
               tl._id.toString(),
               tl,
@@ -117,17 +117,14 @@ export const getSubcategories = async (req, res) => {
           _id: team._id,
           name: team.name,
 
-          manager:
-            team.managerIds?.length > 0
-              ? team.managerIds[0]
-              : null,
+          managers: team.managerIds || [],
 
-          hr:
-            team.hrIds?.length > 0
-              ? team.hrIds[0]
-              : null,
+          hrs: team.hrIds || [],
 
-          teamLeader: team.teamLeaderId || null,
+          teamLeader:
+            team.teamLeaderId?.role === "TeamLeader"
+              ? team.teamLeaderId
+              : null,
 
           employeeCount: teamEmployees.length,
           employees: teamEmployees,
@@ -532,9 +529,6 @@ export const updateUser = async (req, res) => {
     }
     const previousRole = user.role;
 
-    const previousAssignedTeams = [
-      ...(user.assignedTeamIds || []),
-    ].map((id) => id.toString());
     if (
       email &&
       !email
@@ -597,7 +591,36 @@ export const updateUser = async (req, res) => {
       role === "HR" || role === "Manager" ? assignedTeamIds || [] : [];
 
     await user.save();
+    if (user.role === "TeamLeader" && user.teamId) {
+      await Team.updateMany(
+        {
+          teamLeaderId: user._id,
+        },
+        {
+          $set: {
+            teamLeaderId: null,
+          },
+        }
+      );
 
+      await Team.findByIdAndUpdate(user.teamId, {
+        $set: {
+          teamLeaderId: user._id,
+        },
+      });
+    }
+    if (previousRole === "TeamLeader" && role !== "TeamLeader") {
+      await Team.updateMany(
+        {
+          teamLeaderId: user._id,
+        },
+        {
+          $set: {
+            teamLeaderId: null,
+          },
+        }
+      );
+    }
 
     if (previousRole === "Manager") {
       await Team.updateMany(
@@ -656,7 +679,6 @@ export const updateUser = async (req, res) => {
         }
       );
     }
-
 
     res.status(200).json({
       success: true,

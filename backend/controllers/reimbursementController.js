@@ -26,7 +26,10 @@ export const createReimbursementRequest = async (req, res) => {
       .populate("teamLeaderId", "name email role")
       .populate("managerId", "name email role");
 
-    if (!employee?.teamLeaderId) {
+    if (
+      req.user.role !== "TeamLeader" &&
+      !employee?.teamLeaderId
+    ) {
       return res.status(400).json({
         success: false,
         message: "No Team Leader assigned. Please contact Admin.",
@@ -35,8 +38,20 @@ export const createReimbursementRequest = async (req, res) => {
 
     const reimbursementRequest = await ReimbursementRequest.create({
       employeeId: req.user._id,
-      teamLeaderId: employee.teamLeaderId._id,
+      teamLeaderId:
+        req.user.role === "TeamLeader"
+          ? null
+          : employee.teamLeaderId?._id,
+
       managerId: employee.managerId?._id || null,
+
+      tlStatus:
+        req.user.role === "TeamLeader"
+          ? "Approved"
+          : "Pending",
+
+      managerStatus: "Pending",
+      hrStatus: "Pending",
 
       expenseFrom,
       expenseTo,
@@ -47,9 +62,6 @@ export const createReimbursementRequest = async (req, res) => {
       totalReimbursement,
       receiptFiles: uploadedReceiptFiles,
 
-      tlStatus: "Pending",
-      managerStatus: "Pending",
-      hrStatus: "Pending",
       financeStatus: "Not Routed",
       finalStatus: "Pending Final Approval",
 
@@ -114,7 +126,7 @@ export const createReimbursementRequest = async (req, res) => {
 };
 
 export const getMyReimbursementRequests = async (req, res) => {
-  
+
   try {
     const reimbursementRequests = await ReimbursementRequest.find({
       employeeId: req.user._id,
@@ -135,34 +147,34 @@ export const getMyReimbursementRequests = async (req, res) => {
   }
 };
 export const getTLReimbursementHistory = async (req, res) => {
-    try {
-      if (req.user.role !== "TeamLeader") {
-        return res.status(403).json({
-          success: false,
-          message: "Only Team Leaders can view reimbursement history",
-        });
-      }
-
-      const reimbursementRequests = await ReimbursementRequest.find({
-        teamLeaderId: req.user._id,
-        tlStatus: {
-          $in: ["Approved", "Rejected"],
-        },
-      })
-        .populate("employeeId", "name email employeeId designation")
-        .sort({ updatedAt: -1 });
-
-      res.status(200).json({
-        success: true,
-        reimbursementRequests,
-      });
-    } catch (error) {
-      res.status(500).json({
+  try {
+    if (req.user.role !== "TeamLeader") {
+      return res.status(403).json({
         success: false,
-        message: error.message,
+        message: "Only Team Leaders can view reimbursement history",
       });
     }
-  };
+
+    const reimbursementRequests = await ReimbursementRequest.find({
+      teamLeaderId: req.user._id,
+      tlStatus: {
+        $in: ["Approved", "Rejected"],
+      },
+    })
+      .populate("employeeId", "name email employeeId designation")
+      .sort({ updatedAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      reimbursementRequests,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
 export const getPendingTLReimbursements = async (req, res) => {
   try {
     if (req.user.role !== "TeamLeader") {
@@ -331,6 +343,7 @@ export const getPendingManagerReimbursements = async (req, res) => {
         : {
           finalStatus: "Pending Final Approval",
           managerId: req.user._id,
+          tlStatus: "Approved",
         };
 
     const reimbursementRequests = await ReimbursementRequest.find(filter)
@@ -362,30 +375,30 @@ export const getManagerReimbursementHistory = async (req, res) => {
     const filter =
       req.user.role === "HR"
         ? {
-            finalStatus: {
-              $in: [
-                "Approved by Manager",
-                "Approved by HR",
-                "Rejected by Manager",
-                "Rejected by HR",
-                "Pending Finance Payment",
-                "Paid by Finance",
-              ],
-            },
-          }
+          finalStatus: {
+            $in: [
+              "Approved by Manager",
+              "Approved by HR",
+              "Rejected by Manager",
+              "Rejected by HR",
+              "Pending Finance Payment",
+              "Paid by Finance",
+            ],
+          },
+        }
         : {
-            managerId: req.user._id,
-            finalStatus: {
-              $in: [
-                "Approved by Manager",
-                "Approved by HR",
-                "Rejected by Manager",
-                "Rejected by HR",
-                "Pending Finance Payment",
-                "Paid by Finance",
-              ],
-            },
-          };
+          managerId: req.user._id,
+          finalStatus: {
+            $in: [
+              "Approved by Manager",
+              "Approved by HR",
+              "Rejected by Manager",
+              "Rejected by HR",
+              "Pending Finance Payment",
+              "Paid by Finance",
+            ],
+          },
+        };
 
     const reimbursementRequests = await ReimbursementRequest.find(filter)
       .populate("employeeId", "name email employeeId designation")

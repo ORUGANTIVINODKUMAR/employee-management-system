@@ -903,11 +903,11 @@ const Dashboard = () => {
                 <div className="modern-stats-grid">
                   <div className="mini-stat-card">
                     <Users size={23} />
-                    <span>
+                    <h3>
                       {user?.role === "HR"
-                        ? "Total Employees"
-                        : "My Team Members"}
-                    </span>
+                        ? stats.totalEmployees || 0
+                        : stats.managerEmployees?.length || 0}
+                    </h3>
 
                     <h3>
                       {user?.role === "HR"
@@ -948,6 +948,70 @@ const Dashboard = () => {
                 </div>
 
                 <div className="modern-section-card">
+                  {user?.role === "Manager" && (
+                    <>
+                      <h3>Teams Under Me</h3>
+
+                      <div style={{ marginTop: "15px" }}>
+                        {stats.managerTeams?.map((team) => (
+                          <div
+                            key={team._id}
+                            style={{
+                              padding: "12px",
+                              borderBottom: "1px solid #eee",
+                            }}
+                          >
+                            <strong>{team.name}</strong>
+
+                            <p>
+                              Employees: {team.employeeCount}
+                            </p>
+
+                            <p>
+                              Team Leader:
+                              {team.teamLeaderId?.name || "Not Assigned"}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
+
+
+                  {user?.role === "HR" && (
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns:
+                          "repeat(auto-fit,minmax(200px,1fr))",
+                        gap: "15px",
+                        marginTop: "20px",
+                      }}
+                    >
+                      <div className="mini-stat-card">
+                        <span>Managers</span>
+                        <h3>{stats.totalManagers || 0}</h3>
+                      </div>
+
+                      <div className="mini-stat-card">
+                        <span>Team Leaders</span>
+                        <h3>{stats.totalTeamLeaders || 0}</h3>
+                      </div>
+
+                      <div className="mini-stat-card">
+                        <span>HR</span>
+                        <h3>{stats.totalHRs || 0}</h3>
+                      </div>
+
+                      <div className="mini-stat-card">
+                        <span>Finance</span>
+                        <h3>{stats.totalFinance || 0}</h3>
+                      </div>
+                    </div>
+                  )}
+
+
+
                   <h3>
                     {user?.role === "HR" ? "HR Workload" : "Manager Workload"}
                   </h3>
@@ -981,6 +1045,60 @@ const Dashboard = () => {
                       View Leave Calendar
                     </button>
                   </div>
+                </div>
+              </>
+            )}
+            {isTeamLeader && (
+              <>
+                <div className="modern-stats-grid">
+                  <div className="mini-stat-card">
+                    <Users size={23} />
+                    <span>My Team Members</span>
+                    <h3>{stats.teamMembers?.length || 0}</h3>
+                  </div>
+
+                  <div className="mini-stat-card">
+                    <Building2 size={23} />
+                    <span>My Teams</span>
+                    <h3>{stats.tlTeams?.length || 0}</h3>
+                  </div>
+
+                  <div className="mini-stat-card">
+                    <CalendarCheck size={23} />
+                    <span>Pending Leave Approvals</span>
+                    <h3>{stats.pendingTLLeaves || 0}</h3>
+                  </div>
+
+                  <div className="mini-stat-card">
+                    <Receipt size={23} />
+                    <span>Pending Reimbursements</span>
+                    <h3>{stats.pendingTLReimbursements || 0}</h3>
+                  </div>
+                </div>
+
+                <div className="modern-section-card">
+                  <h3>My Team Members</h3>
+
+                  {stats.teamMembers?.length > 0 ? (
+                    <div style={{ marginTop: "15px" }}>
+                      {stats.teamMembers.map((member) => (
+                        <div
+                          key={member._id}
+                          style={{
+                            padding: "12px",
+                            borderBottom: "1px solid #eee",
+                          }}
+                        >
+                          <strong>{member.name}</strong>
+                          <p>
+                            {member.designation} • {member.role}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p>No team members assigned.</p>
+                  )}
                 </div>
               </>
             )}
@@ -1136,12 +1254,12 @@ const Dashboard = () => {
           </div>
         )}
 
-        {activePage === "holidays" && (
-          <div className="modern-section-card">
-            <HolidayManagement />
-          </div>
-        )}
-
+        <div
+          className={`modern-section-card ${activePage === "holidays" ? "page-visible" : "page-hidden"
+            }`}
+        >
+          <HolidayManagement />
+        </div>
         {showPasswordModal && (
           <div className="modal-overlay">
             <div className="modal-box">

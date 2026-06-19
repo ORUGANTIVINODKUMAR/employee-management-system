@@ -52,7 +52,10 @@ export const createLeaveRequest = async (req, res) => {
       .populate("teamLeaderId", "name email role")
       .populate("managerId", "name email role");
 
-    if (!employee.teamLeaderId) {
+    if (
+      req.user.role !== "TeamLeader" &&
+      !employee.teamLeaderId
+    ) {
       return res.status(400).json({
         success: false,
         message: "No Team Leader assigned",
@@ -221,9 +224,15 @@ export const getPendingTLRequests = async (req, res) => {
     }
 
     const leaveRequests = await LeaveRequest.find({
-      teamLeaderId: req.user._id,
+      teamLeaderId:
+        req.user.role === "TeamLeader"
+          ? null
+          : employee.teamLeaderId?._id,
       finalStatus: "Pending Final Approval",
-      tlStatus: "Pending",
+      tlStatus:
+        req.user.role === "TeamLeader"
+          ? "Approved"
+          : "Pending",
     })
       .populate("employeeId", "name email employeeId designation")
       .populate("subcategoryId", "name")
