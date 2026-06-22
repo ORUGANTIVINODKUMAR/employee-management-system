@@ -361,12 +361,10 @@ export const getPendingManagerReimbursements = async (req, res) => {
       req.user.role === "HR"
         ? {
           finalStatus: "Pending Final Approval",
-          tlStatus: "Approved",
         }
         : {
           finalStatus: "Pending Final Approval",
           managerId: req.user._id,
-          tlStatus: "Approved",
         };
 
     const reimbursementRequests = await ReimbursementRequest.find(filter)

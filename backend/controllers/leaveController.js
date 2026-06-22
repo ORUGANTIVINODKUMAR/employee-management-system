@@ -93,6 +93,9 @@ export const createLeaveRequest = async (req, res) => {
         message: "Leave cannot be applied only on weekends or holidays.",
       });
     }
+    console.log("Assigned Team Leader:", assignedTeamLeader?._id);
+    console.log("Assigned Manager:", assignedManager?._id);
+    console.log("Team:", team.name);
 
     const leaveRequest = await LeaveRequest.create({
       employeeId: req.user._id,
@@ -449,12 +452,10 @@ export const getPendingManagerRequests = async (req, res) => {
       req.user.role === "HR"
         ? {
           finalStatus: "Pending Final Approval",
-          tlStatus: "Approved",
         }
         : {
           finalStatus: "Pending Final Approval",
           managerId: req.user._id,
-          tlStatus: "Approved",
         };
     const leaveRequests = await LeaveRequest.find(filter)
       .populate("employeeId", "name email employeeId designation")
