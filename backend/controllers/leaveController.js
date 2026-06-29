@@ -288,15 +288,11 @@ export const getTLApprovalHistory = async (req, res) => {
 
     const leaveRequests = await LeaveRequest.find({
       teamLeaderId: req.user._id,
-      tlStatus: {
-        $in: ["Approved", "Rejected"],
-      },
     })
-      .populate(
-        "employeeId",
-        "name email employeeId designation"
-      )
+      .populate("employeeId", "name email employeeId designation")
       .populate("subcategoryId", "name")
+      .populate("managerApprovedBy", "name")
+      .populate("hrApprovedBy", "name")
       .sort({ updatedAt: -1 });
 
     res.status(200).json({

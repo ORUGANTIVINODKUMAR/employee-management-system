@@ -367,11 +367,14 @@ export const getPendingManagerReimbursements = async (req, res) => {
           managerId: req.user._id,
         };
 
-    const reimbursementRequests = await ReimbursementRequest.find(filter)
+    const reimbursementRequests = await ReimbursementRequest.find({
+      teamLeaderId: req.user._id,
+    })
       .populate("employeeId", "name email employeeId designation")
-      .populate("teamLeaderId", "name email role")
-      .populate("tlApprovedBy", "name")
-      .sort({ createdAt: -1 });
+      .populate("managerApprovedBy", "name")
+      .populate("hrApprovedBy", "name")
+      .populate("financeApprovedBy", "name")
+      .sort({ updatedAt: -1 });
 
     res.status(200).json({
       success: true,
