@@ -1,10 +1,13 @@
 import { useEffect, useState } from "react";
 import { Receipt } from "lucide-react";
 
+
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 
+
 import api from "../api/api";
+
 
 const AdminReimbursementReports = () => {
   const [requests, setRequests] = useState([]);
@@ -14,7 +17,17 @@ const AdminReimbursementReports = () => {
   const [selectedMonth, setSelectedMonth] = useState("");
   const [selectedEmployee, setSelectedEmployee] = useState("All");
   const REPORTS_PER_PAGE = 10;
+  const getReceiptUrl = (file) => {
+    if (!file) return "#";
 
+    // Cloudinary or any external URL
+    if (file.startsWith("http://") || file.startsWith("https://")) {
+      return file;
+    }
+
+    // Local uploads
+    return `${import.meta.env.VITE_API_URL.replace("/api", "")}/${file}`;
+  };
   const fetchReports = async () => {
     try {
       const { data } = await api.get("/admin/reimbursement-reports");
@@ -149,7 +162,6 @@ const AdminReimbursementReports = () => {
           }}
         />
       </div>
-
 
 
 
@@ -310,7 +322,7 @@ const AdminReimbursementReports = () => {
                       {item.receiptFiles.map((file, index) => (
                         <a
                           key={index}
-                          href={`http://localhost:5000/${file}`}
+                          href={getReceiptUrl(file)}
                           target="_blank"
                           rel="noreferrer"
                           className="btn btn-secondary"
