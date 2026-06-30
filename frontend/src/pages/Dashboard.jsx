@@ -1048,6 +1048,7 @@ const Dashboard = () => {
                 </div>
               </>
             )}
+
             {isTeamLeader && (
               <>
                 <div className="modern-stats-grid">
@@ -1055,24 +1056,81 @@ const Dashboard = () => {
                     <Users size={23} />
                     <span>My Team Members</span>
                     <h3>{stats.teamMembers?.length || 0}</h3>
+                    <p>assigned employees</p>
                   </div>
 
                   <div className="mini-stat-card">
                     <Building2 size={23} />
                     <span>My Teams</span>
                     <h3>{stats.tlTeams?.length || 0}</h3>
+                    <p>teams under you</p>
                   </div>
 
                   <div className="mini-stat-card">
                     <CalendarCheck size={23} />
-                    <span>Pending Leave Approvals</span>
+                    <span>Pending Leave Review</span>
                     <h3>{stats.pendingTLLeaves || 0}</h3>
+                    <p>awaiting TL review</p>
                   </div>
 
                   <div className="mini-stat-card">
                     <Receipt size={23} />
-                    <span>Pending Reimbursements</span>
+                    <span>Pending Claim Review</span>
                     <h3>{stats.pendingTLReimbursements || 0}</h3>
+                    <p>awaiting TL review</p>
+                  </div>
+                </div>
+
+                <div className="modern-section-card">
+                  <h3>Team Leader Quick Actions</h3>
+
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                      gap: "16px",
+                      marginTop: "16px",
+                    }}
+                  >
+                    <button
+                      className="btn btn-primary"
+                      onClick={() => {
+                        setActivePage("tlApprovals");
+                        localStorage.setItem("activePage", "tlApprovals");
+                      }}
+                    >
+                      Review Leave Requests
+                    </button>
+
+                    <button
+                      className="btn btn-primary"
+                      onClick={() => {
+                        setActivePage("reimbursementApprovals");
+                        localStorage.setItem("activePage", "reimbursementApprovals");
+                      }}
+                    >
+                      Review Reimbursements
+                    </button>
+
+                    <button
+                      className="btn btn-primary"
+                      onClick={() => {
+                        setActivePage("leave");
+                        localStorage.setItem("activePage", "leave");
+                      }}
+                    >
+                      Apply / Track My Leave
+                    </button>
+
+                    <button
+                      className="btn btn-primary"
+                      onClick={() => {
+                        setActivePage("reimbursements");
+                        localStorage.setItem("activePage", "reimbursements");
+                      }}
+                    >
+                      Apply / Track Claims
+                    </button>
                   </div>
                 </div>
 
@@ -1087,12 +1145,21 @@ const Dashboard = () => {
                           style={{
                             padding: "12px",
                             borderBottom: "1px solid #eee",
+                            display: "flex",
+                            justifyContent: "space-between",
+                            gap: "12px",
                           }}
                         >
-                          <strong>{member.name}</strong>
-                          <p>
-                            {member.designation} • {member.role}
-                          </p>
+                          <div>
+                            <strong>{member.name}</strong>
+                            <p style={{ margin: "4px 0", color: "#6b7280" }}>
+                              {member.designation || "No designation"} • {member.role}
+                            </p>
+                          </div>
+
+                          <span className="active-pill">
+                            {member.teamId?.name || "No Team"}
+                          </span>
                         </div>
                       ))}
                     </div>
@@ -1173,7 +1240,7 @@ const Dashboard = () => {
             <TLApprovals />
           </div>
         )}
-        
+
         {(isEmployee || isTeamLeader) && (
           <div
             className={`modern-section-card ${activePage === "leave" ? "page-visible" : "page-hidden"}`}

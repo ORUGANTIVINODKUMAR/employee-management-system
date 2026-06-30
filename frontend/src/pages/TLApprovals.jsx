@@ -21,18 +21,31 @@ const TLApprovals = () => {
 
   const fetchRequests = async () => {
     try {
-      if (activeTab === "Pending") {
-        const { data } = await api.get("/leave/tl-pending");
-        setRequests(data.leaveRequests || []);
-      } else {
-        const { data } = await api.get("/leave/tl/history");
+      let data;
 
-        const filtered = (data.leaveRequests || []).filter(
-          (item) => item.tlStatus === activeTab
-        );
-
-        setRequests(filtered);
+      if (activeTab === "Pending Review") {
+        data = await api.get("/leave/tl-pending");
+        setRequests(data.data.leaveRequests || []);
+        return;
       }
+
+      data = await api.get("/leave/tl/history");
+
+      let rows = data.data.leaveRequests || [];
+
+      if (activeTab === "Final Approved") {
+        rows = rows.filter((x) =>
+          ["Approved by Manager", "Approved by HR"].includes(x.finalStatus)
+        );
+      }
+
+      if (activeTab === "Final Rejected") {
+        rows = rows.filter((x) =>
+          x.finalStatus?.includes("Rejected")
+        );
+      }
+
+      setRequests(rows);
     } catch (error) {
       console.log(error.response?.data);
     }
@@ -115,7 +128,12 @@ const TLApprovals = () => {
       </div>
 
       <div className="leave-filter-tabs">
-        {["Pending", "Approved", "Rejected"].map((tab) => (
+        {[
+          "Pending Review",
+          "All Requests",
+          "Final Approved",
+          "Final Rejected",
+        ].map((tab) => (
           <button
             key={tab}
             className={activeTab === tab ? "active-filter" : ""}
@@ -151,8 +169,10 @@ const TLApprovals = () => {
               <th>Duration</th>
               <th>Working Days</th>
               <th>Reason</th>
-              <th>Final Status</th>
               <th>TL Status</th>
+              <th>Manager</th>
+              <th>HR</th>
+              <th>Final Status</th>
               <th>Action</th>
             </tr>
           </thead>
@@ -199,27 +219,11 @@ const TLApprovals = () => {
                 <td>
                   <span
                     className={
-                      ["Approved by Manager", "Approved by HR"].includes(
-                        item.finalStatus
-                      )
-                        ? "badge badge-success"
-                        : item.finalStatus?.includes("Rejected")
-                        ? "badge badge-danger"
-                        : "badge badge-pending"
-                    }
-                  >
-                    {item.finalStatus}
-                  </span>
-                </td>
-
-                <td>
-                  <span
-                    className={
                       item.tlStatus === "Approved"
                         ? "badge badge-success"
                         : item.tlStatus === "Rejected"
-                        ? "badge badge-danger"
-                        : "badge badge-pending"
+                          ? "badge badge-danger"
+                          : "badge badge-pending"
                     }
                   >
                     {item.tlStatus}
@@ -227,8 +231,50 @@ const TLApprovals = () => {
                 </td>
 
                 <td>
+                  <span
+                    className={
+                      item.managerStatus === "Approved"
+                        ? "badge badge-success"
+                        : item.managerStatus === "Rejected"
+                          ? "badge badge-danger"
+                          : "badge badge-pending"
+                    }
+                  >
+                    {item.managerStatus}
+                  </span>
+                </td>
+
+                <td>
+                  <span
+                    className={
+                      item.hrStatus === "Approved"
+                        ? "badge badge-success"
+                        : item.hrStatus === "Rejected"
+                          ? "badge badge-danger"
+                          : "badge badge-pending"
+                    }
+                  >
+                    {item.hrStatus}
+                  </span>
+                </td>
+
+                <td>
+                  <span
+                    className={
+                      ["Approved by Manager", "Approved by HR"].includes(item.finalStatus)
+                        ? "badge badge-success"
+                        : item.finalStatus?.includes("Rejected")
+                          ? "badge badge-danger"
+                          : "badge badge-pending"
+                    }
+                  >
+                    {item.finalStatus}
+                  </span>
+                </td>
+
+                <td>
                   {item.tlStatus === "Pending" &&
-                  item.finalStatus === "Pending Final Approval" ? (
+                    item.finalStatus === "Pending Final Approval" ? (
                     <div className="action-buttons">
                       <button
                         className="approve-btn"
@@ -251,8 +297,8 @@ const TLApprovals = () => {
                       {item.tlStatus === "Approved"
                         ? "TL Approved"
                         : item.tlStatus === "Rejected"
-                        ? "TL Rejected"
-                        : "Finalized"}
+                          ? "TL Rejected"
+                          : "Finalized"}
                     </span>
                   )}
                 </td>
@@ -262,7 +308,7 @@ const TLApprovals = () => {
             {filteredRequests.length === 0 && (
               <tr>
                 <td colSpan="8" style={{ textAlign: "center", padding: "24px" }}>
-                  No {activeTab.toLowerCase()} leave requests found.
+                  No leave requests found.
                 </td>
               </tr>
             )}
@@ -316,7 +362,6 @@ const TLApprovals = () => {
                 onChange={(e) => setRejectionReason(e.target.value)}
                 style={{ width: "100%" }}
               />
-
               <button
                 className="reject-btn"
                 style={{ marginTop: "16px" }}
